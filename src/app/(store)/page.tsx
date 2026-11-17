@@ -5,12 +5,11 @@ import { db } from "@/lib/db";
 import { HowItWorks } from "@/components/how-it-works";
 import { ProductCard } from "@/components/product-card";
 import { NewsletterForm } from "@/components/newsletter-form";
-import { accentFor, iconFor } from "@/components/icons";
+import { accentFor, iconFor, sortCategories } from "@/components/icons";
 import { Reveal } from "@/components/reveal";
 
 export const revalidate = 300;
 
-const CATEGORY_ORDER = ["ride", "frame", "dress-up", "profile-bg", "seats", "entrance", "badge", "chat-box", "room-bg", "room-frames", "card"];
 
 const testimonials = [
   { q: "ET-Store has become my go-to place for polished assets that make every client project feel more considered.", n: "Alex Morgan", r: "Brand designer" },
@@ -43,8 +42,7 @@ export default async function Home() {
       include: { category: { select: { name: true } } },
     }),
   ]);
-  const rank = (slug: string) => (CATEGORY_ORDER.indexOf(slug) + 1 || 99);
-  const categories = rawCategories.sort((a, b) => rank(a.slug) - rank(b.slug));
+  const categories = sortCategories(rawCategories);
 
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col px-4 pb-16 sm:px-6">

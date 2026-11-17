@@ -36,3 +36,10 @@ const ACCENT = {
 };
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const accentFor = (slug: string) => ACCENT;
+
+/** Display order for categories (header menu, home page). */
+export const CATEGORY_ORDER = ["ride", "frame", "dress-up", "profile-bg", "seats", "entrance", "badge", "chat-box", "room-bg", "room-frames", "card"];
+export const sortCategories = <T extends { slug: string }>(list: T[]) => {
+  const rank = (slug: string) => CATEGORY_ORDER.indexOf(slug) + 1 || 99;
+  return [...list].sort((a, b) => rank(a.slug) - rank(b.slug));
+};

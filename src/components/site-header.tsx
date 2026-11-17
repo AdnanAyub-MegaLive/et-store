@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Heart, ShoppingBag, User } from "lucide-react";
 import { SearchDialog } from "./search-dialog";
 import { getCurrentUser } from "@/lib/session";
+import { db } from "@/lib/db";
+import { sortCategories } from "./icons";
 import { CartCount } from "./cart";
 import { NavLinks } from "./nav-links";
 import { HeaderShell } from "./header-shell";
@@ -35,13 +37,16 @@ export function Logo() {
 }
 
 export async function SiteHeader() {
-  const user = await getCurrentUser();
+  const [user, categories] = await Promise.all([
+    getCurrentUser(),
+    db.category.findMany({ select: { slug: true, name: true, icon: true } }),
+  ]);
   const accountHref = user ? (user.role === "ADMIN" ? "/admin" : "/account") : "/login";
   return (
     <HeaderShell>
       <nav className="mx-auto flex h-16 max-w-[1280px] items-center gap-4 px-4 sm:px-6 lg:gap-8" aria-label="Primary navigation">
         <Logo />
-        <NavLinks />
+        <NavLinks categories={sortCategories(categories)} />
         <div className="ml-auto flex items-center gap-1">
           <SearchDialog className={iconBtn} />
           <Link href={user ? "/account" : "/login"} className={iconBtn} aria-label="Favorites">
