@@ -82,7 +82,7 @@ export default async function AccountPage() {
         </section>
         <aside className="card flex h-fit flex-col gap-3 p-6">
           <h2 className="font-semibold">Continue exploring</h2>
-          {[["Design resources", "Fresh tools for your next project", "ui-kits"], ["Marketing templates", "Build a stronger launch plan", "templates"], ["Freelance tools", "Work smarter and stay organized", "business-tools"]].map(([t, s, c]) => (
+          {[["Rides", "Arrive in style", "ride"], ["Entrances", "Make every entry unforgettable", "entrance"], ["Room BG", "Give your room a fresh look", "room-bg"]].map(([t, s, c]) => (
             <Link key={t} href={`/shop?category=${c}`} className="rounded-xl border border-line bg-surface p-3 hover:bg-brand-soft/50">
               <p className="font-medium">{t}</p><p className="text-sm text-muted">{s}</p>
             </Link>

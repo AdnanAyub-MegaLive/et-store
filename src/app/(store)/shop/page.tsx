@@ -9,7 +9,7 @@ import { accentFor } from "@/components/icons";
 export const metadata: Metadata = { title: "All digital products" };
 
 const PAGE_SIZE = 9;
-const FORMATS = ["Canva", "Figma", "PDF", "Notion"];
+const FORMATS = ["Animated", "Static"];
 const SORTS = { featured: "Featured", newest: "Newest", "price-asc": "Price: low to high", "price-desc": "Price: high to low", rating: "Top rated" } as const;
 
 type SP = Promise<Record<string, string | string[] | undefined>>;

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { Search, X } from "lucide-react";
 
-const suggestions = ["Templates", "UI Kits", "Notion", "Icons", "eBooks"];
+const suggestions = ["Ride", "Frame", "Entrance", "Badge", "Room BG"];
 
 export function SearchDialog({ className }: { className: string }) {
   const [open, setOpen] = useState(false);

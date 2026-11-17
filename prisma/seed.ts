@@ -5,40 +5,67 @@ import { randomBytes } from "crypto";
 const db = new PrismaClient();
 
 const categories = [
-  { name: "Templates", slug: "templates", icon: "layout-template" },
-  { name: "UI Kits", slug: "ui-kits", icon: "shapes" },
-  { name: "eBooks & Guides", slug: "ebooks-guides", icon: "book-open" },
-  { name: "Graphics", slug: "graphics", icon: "palette" },
-  { name: "AI Prompts", slug: "ai-prompts", icon: "sparkles" },
-  { name: "Business Tools", slug: "business-tools", icon: "briefcase" },
+  { name: "Ride", slug: "ride", icon: "car" },
+  { name: "Frame", slug: "frame", icon: "frame" },
+  { name: "DressUp", slug: "dress-up", icon: "shirt" },
+  { name: "Profile BG", slug: "profile-bg", icon: "image" },
+  { name: "Seats", slug: "seats", icon: "armchair" },
+  { name: "Entrance", slug: "entrance", icon: "door-open" },
+  { name: "Badge", slug: "badge", icon: "award" },
+  { name: "Chat Box", slug: "chat-box", icon: "message-square" },
+  { name: "Room BG", slug: "room-bg", icon: "home" },
+  { name: "Room Frames", slug: "room-frames", icon: "panels" },
+  { name: "Card", slug: "card", icon: "credit-card" },
 ];
 
+// Placeholder images until real item artwork is added from the admin dashboard.
 const img = { nova: "/products/nova-ui-kit.png", social: "/products/social-launch-pack.png", book: "/products/freelance-playbook.png", studio: "/products/studio-proposal-system.png" };
 
 const products = [
-  ["nova-ui-kit", "Nova UI Kit", "ui-kits", 4800, 6400, img.nova, "Featured", "Figma", 4.9, 128, true],
-  ["social-launch-pack", "Social Launch Pack", "graphics", 1900, 2900, img.social, "Popular", "Canva", 4.8, 94, true],
-  ["freelance-playbook", "The Freelance Playbook", "ebooks-guides", 2400, null, img.book, "Best seller", "PDF", 4.9, 212, true],
-  ["studio-proposal-system", "Studio Proposal System", "business-tools", 3200, null, img.studio, "New", "PDF + Notion", 4.7, 67, true],
-  ["creator-dashboard", "Creator Dashboard", "templates", 2900, 3900, img.nova, null, "Notion", 4.8, 83, false],
-  ["brand-voice-prompt-pack", "Brand Voice Prompt Pack", "ai-prompts", 1500, null, img.book, "New", "PDF", 4.9, 156, false],
-  ["editorial-canva-suite", "Editorial Canva Suite", "templates", 3600, null, img.social, "Featured", "Canva", 4.8, 71, false],
-  ["client-onboarding-os", "Client Onboarding OS", "business-tools", 4200, 5200, img.studio, null, "Notion", 4.9, 118, false],
-  ["minimal-portfolio-template", "Minimal Portfolio Template", "templates", 2800, null, img.social, "Popular", "Figma", 4.7, 59, false],
-  ["pitch-deck-kit", "Pitch Deck Kit", "templates", 3900, null, img.studio, null, "Figma", 4.6, 41, false],
-  ["icon-essentials", "Icon Essentials", "graphics", 1200, null, img.nova, null, "Figma", 4.8, 77, false],
-  ["seo-prompt-library", "SEO Prompt Library", "ai-prompts", 1900, null, img.book, null, "PDF", 4.5, 33, false],
+  ["neon-supercar", "Neon Supercar", "ride", 2900, 3900, img.nova, "Featured", "Animated", 4.9, 128, true],
+  ["royal-chariot", "Royal Chariot", "ride", 1900, null, img.studio, null, "Animated", 4.7, 54, false],
+  ["golden-crown-frame", "Golden Crown Frame", "frame", 1200, 1600, img.social, "Popular", "Animated", 4.8, 94, true],
+  ["galaxy-ring-frame", "Galaxy Ring Frame", "frame", 900, null, img.nova, null, "Static", 4.6, 41, false],
+  ["street-style-outfit", "Street Style Outfit", "dress-up", 1500, null, img.book, "New", "Animated", 4.8, 77, false],
+  ["royal-gown", "Royal Gown", "dress-up", 2200, 2800, img.social, null, "Animated", 4.7, 36, false],
+  ["sunset-profile-bg", "Sunset Profile BG", "profile-bg", 800, null, img.studio, null, "Static", 4.6, 63, false],
+  ["aurora-profile-bg", "Aurora Profile BG", "profile-bg", 1100, null, img.nova, "Best seller", "Animated", 4.9, 212, true],
+  ["velvet-throne-seat", "Velvet Throne Seat", "seats", 1400, null, img.book, null, "Static", 4.7, 48, false],
+  ["diamond-vip-seat", "Diamond VIP Seat", "seats", 2400, 3000, img.social, "Popular", "Animated", 4.8, 89, false],
+  ["dragon-entrance", "Dragon Entrance", "entrance", 3200, 4200, img.studio, "Featured", "Animated", 4.9, 156, true],
+  ["fireworks-entrance", "Fireworks Entrance", "entrance", 2100, null, img.nova, null, "Animated", 4.7, 59, false],
+  ["vip-gold-badge", "VIP Gold Badge", "badge", 700, null, img.social, null, "Static", 4.8, 118, false],
+  ["top-host-badge", "Top Host Badge", "badge", 900, null, img.book, "New", "Animated", 4.6, 33, false],
+  ["neon-chat-box", "Neon Chat Box", "chat-box", 600, null, img.nova, null, "Animated", 4.7, 71, false],
+  ["love-bubble-chat-box", "Love Bubble Chat Box", "chat-box", 500, null, img.social, null, "Static", 4.5, 29, false],
+  ["night-city-room-bg", "Night City Room BG", "room-bg", 1300, null, img.studio, null, "Animated", 4.8, 67, false],
+  ["palace-hall-room-bg", "Palace Hall Room BG", "room-bg", 1700, 2200, img.book, "Popular", "Static", 4.7, 45, false],
+  ["crystal-room-frame", "Crystal Room Frame", "room-frames", 1600, null, img.nova, null, "Animated", 4.8, 52, false],
+  ["floral-room-frame", "Floral Room Frame", "room-frames", 1000, null, img.social, null, "Static", 4.6, 24, false],
+  ["platinum-card", "Platinum Card", "card", 1800, 2400, img.studio, "New", "Animated", 4.9, 83, false],
+  ["birthday-card", "Birthday Card", "card", 600, null, img.book, null, "Static", 4.7, 38, false],
 ] as const;
 
 async function main() {
+  // Remove categories that are no longer in the list above, along with their products.
+  const keep = categories.map((c) => c.slug);
+  const oldProducts = await db.product.findMany({ where: { category: { slug: { notIn: keep } } }, select: { id: true } });
+  if (oldProducts.length) {
+    const ids = oldProducts.map((p) => p.id);
+    await db.orderItem.deleteMany({ where: { productId: { in: ids } } });
+    await db.order.deleteMany({ where: { items: { none: {} } } });
+    await db.product.deleteMany({ where: { id: { in: ids } } });
+  }
+  await db.category.deleteMany({ where: { slug: { notIn: keep } } });
+
   for (const c of categories) await db.category.upsert({ where: { slug: c.slug }, create: c, update: c });
   const cats = Object.fromEntries((await db.category.findMany()).map((c) => [c.slug, c.id]));
 
   for (const [slug, name, cat, price, compare, image, badge, format, rating, reviews, featured] of products) {
     const data = {
       name,
-      tagline: `A complete ${format} resource for creators building polished work without starting from scratch.`,
-      description: `${name} gives your team a flexible foundation for creating consistent, polished results across every project and workflow.`,
+      tagline: `${format} ${categories.find((c) => c.slug === cat)?.name ?? "item"} that makes your profile and rooms stand out.`,
+      description: `${name} is a premium ${format.toLowerCase()} item. Equip it from your inventory and show it off to everyone in your rooms.`,
       priceCents: price,
       compareCents: compare,
       image,
@@ -47,10 +74,10 @@ async function main() {
       rating,
       reviewCount: reviews,
       featured,
-      creator: "Northstar Studio",
-      fileTypes: format.includes("Figma") ? "Figma, Sketch" : format,
-      fileSize: "128 MB",
-      features: ["180+ components", "24 page templates", "Auto-layout", "Dark + light modes", "Responsive grids", "Free updates"],
+      creator: "ET-Store Studio",
+      fileTypes: format,
+      fileSize: "Digital item",
+      features: [format === "Animated" ? "Animated effect" : "HD artwork", "Instant delivery", "Visible to everyone", "Works in all rooms", "Equip anytime", "Free updates"],
       categoryId: cats[cat],
     };
     await db.product.upsert({ where: { slug }, create: { slug, ...data }, update: data });

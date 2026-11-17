@@ -5,13 +5,12 @@ import { db } from "@/lib/db";
 import { HowItWorks } from "@/components/how-it-works";
 import { ProductCard } from "@/components/product-card";
 import { NewsletterForm } from "@/components/newsletter-form";
-import { accentFor, categoryIcons } from "@/components/icons";
+import { accentFor, iconFor } from "@/components/icons";
 import { Reveal } from "@/components/reveal";
 
 export const revalidate = 300;
 
-// Matches the order in the Figma design.
-const CATEGORY_ORDER = ["templates", "ui-kits", "ebooks-guides", "graphics", "ai-prompts", "business-tools"];
+const CATEGORY_ORDER = ["ride", "frame", "dress-up", "profile-bg", "seats", "entrance", "badge", "chat-box", "room-bg", "room-frames", "card"];
 
 const testimonials = [
   { q: "ET-Store has become my go-to place for polished assets that make every client project feel more considered.", n: "Alex Morgan", r: "Brand designer" },
@@ -102,7 +101,7 @@ export default async function Home() {
       <div className="relative -mx-4 overflow-hidden border-y border-line bg-panel/60 py-4 [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)] sm:-mx-6" aria-hidden>
         <div data-marquee className="flex w-max gap-10">
           {[...categories, ...categories, ...categories, ...categories].map((c, i) => {
-            const Icon = categoryIcons[c.icon] ?? categoryIcons["layout-template"];
+            const Icon = iconFor(c.icon);
             return (
               <span key={i} className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-muted">
                 <Icon className={`size-4 ${accentFor(c.slug).text}`} />
@@ -119,7 +118,7 @@ export default async function Home() {
         <Reveal><SectionHead title="Shop by category" href="/shop" link="View all" /></Reveal>
         <div data-stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {categories.map((c) => {
-            const Icon = categoryIcons[c.icon] ?? categoryIcons["layout-template"];
+            const Icon = iconFor(c.icon);
             const a = accentFor(c.slug);
             return (
               <div key={c.id}>
