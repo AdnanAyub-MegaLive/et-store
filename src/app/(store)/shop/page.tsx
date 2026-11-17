@@ -21,7 +21,11 @@ export default async function Shop({ searchParams }: { searchParams: SP }) {
   const q = one(sp.q).slice(0, 100);
   const cats = many(sp.category).slice(0, 10);
   const format = FORMATS.includes(one(sp.format)) ? one(sp.format) : "";
-  const maxPrice = Math.min(Math.max(Number(one(sp.max)) || 100, 0), 100);
+  // Optional price range in whole dollars; empty means no limit. Swapped if entered the wrong way round.
+  const dollars = (v: string) => (v.trim() === "" || !Number.isFinite(Number(v)) ? null : Math.min(Math.max(Math.floor(Number(v)), 0), 100_000));
+  let minPrice = dollars(one(sp.min));
+  let maxPrice = dollars(one(sp.max));
+  if (minPrice !== null && maxPrice !== null && minPrice > maxPrice) [minPrice, maxPrice] = [maxPrice, minPrice];
   const sort = (one(sp.sort) in SORTS ? one(sp.sort) : "featured") as keyof typeof SORTS;
   const page = Math.max(1, Math.floor(Number(one(sp.page)) || 1));
 
@@ -37,7 +41,12 @@ export default async function Shop({ searchParams }: { searchParams: SP }) {
     }),
     ...(cats.length && { category: { slug: { in: cats } } }),
     ...(format && { format: { contains: format, mode: "insensitive" } }),
-    ...(maxPrice < 100 && { priceCents: { lte: maxPrice * 100 } }),
+    ...((minPrice !== null || maxPrice !== null) && {
+      priceCents: {
+        ...(minPrice !== null && { gte: minPrice * 100 }),
+        ...(maxPrice !== null && { lte: maxPrice * 100 }),
+      },
+    }),
   };
   const orderBy: Prisma.ProductOrderByWithRelationInput[] = {
     featured: [{ featured: "desc" as const }, { reviewCount: "desc" as const }],
@@ -59,7 +68,8 @@ export default async function Shop({ searchParams }: { searchParams: SP }) {
     if (q) u.set("q", q);
     cats.forEach((c) => u.append("category", c));
     if (format) u.set("format", format);
-    if (maxPrice < 100) u.set("max", String(maxPrice));
+    if (minPrice !== null) u.set("min", String(minPrice));
+    if (maxPrice !== null) u.set("max", String(maxPrice));
     if (sort !== "featured") u.set("sort", sort);
     if (p > 1) u.set("page", String(p));
     return `/shop${u.size ? `?${u}` : ""}`;
@@ -103,10 +113,20 @@ export default async function Shop({ searchParams }: { searchParams: SP }) {
               </label>
             ))}
           </fieldset>
-          <label className="flex flex-col gap-2">
-            <span className="flex justify-between font-semibold">Price <span className="font-normal text-muted">$0 to ${maxPrice}{maxPrice === 100 && "+"}</span></span>
-            <input type="range" name="max" min={0} max={100} step={5} defaultValue={maxPrice} className="accent-brand" />
-          </label>
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-2 font-semibold">Price ($)</legend>
+            <div className="flex items-center gap-2">
+              <label className="flex flex-1 items-center rounded-xl border border-line bg-surface px-2.5 transition focus-within:border-brand">
+                <span className="text-muted">$</span>
+                <input type="number" name="min" min={0} step={1} inputMode="numeric" placeholder="Min" aria-label="Minimum price" defaultValue={minPrice ?? ""} className="h-9 w-full min-w-0 bg-transparent px-1 outline-none placeholder:text-muted" />
+              </label>
+              <span className="text-muted">to</span>
+              <label className="flex flex-1 items-center rounded-xl border border-line bg-surface px-2.5 transition focus-within:border-brand">
+                <span className="text-muted">$</span>
+                <input type="number" name="max" min={0} step={1} inputMode="numeric" placeholder="Max" aria-label="Maximum price" defaultValue={maxPrice ?? ""} className="h-9 w-full min-w-0 bg-transparent px-1 outline-none placeholder:text-muted" />
+              </label>
+            </div>
+          </fieldset>
           <fieldset className="flex flex-col gap-3">
             <legend className="mb-3 font-semibold">Format</legend>
             {["", ...FORMATS].map((f) => (
