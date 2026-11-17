@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+/* `dark:` utilities follow the data-theme attribute set by the theme toggle. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Theme tokens. Utilities (bg-page, text-ink, bg-panel, ...) read these, so switching theme is one attribute. */
+:root {
+  --brand: #6730cc;
+  --brand-soft: #e4e4ff;
+  --ink: #10101c;
+  --muted: #56566b;
+  --line: #d9d9e7;
+  --page: #f9f9ff;
+  --surface: #ededf6;
+  --card: #ffffff;
+  --on-brand: #fbfbff;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --brand: #9b6bff;
+  --brand-soft: #2a1f4d;
+  --ink: #ececf6;
+  --muted: #a3a3bd;
+  --line: #2b2b40;
+  --page: #0b0b14;
+  --surface: #161625;
+  --card: #12121e;
+  --on-brand: #fbfbff;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-panel: var(--card);
+  --color-on-brand: var(--on-brand);
+  --radius-card: 18px;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-page);
+  color: var(--color-ink);
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* Briefly added by the theme toggle so every surface eases between light and dark together. */
+.theme-fade,
+.theme-fade *,
+.theme-fade *::before,
+.theme-fade *::after {
+  transition: background-color 0.4s ease, border-color 0.4s ease, color 0.4s ease, fill 0.4s ease, stroke 0.4s ease !important;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+/* Slide-in animations start off-screen; clip so they never cause a horizontal scrollbar. */
+html, body {
+  overflow-x: clip;
+}
+
+::selection {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+/* ---------- Motion ---------- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes float-tilt {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-14px) rotate(1deg); }
+}
+@keyframes glow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.08); }
+}
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to { background-position: 200% 0; }
+}
+
+@keyframes aurora {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(60px, 40px) scale(1.12); }
+  66% { transform: translate(-40px, 30px) scale(0.92); }
+}
+@keyframes gradient-pan {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+.aurora-blob { position: absolute; border-radius: 9999px; filter: blur(80px); animation: aurora 24s ease-in-out infinite; }
+
+/* Colourful brand gradient: violet → pink → amber, slowly panning. */
+.text-gradient {
+  background: linear-gradient(100deg, #6730cc 0%, #a855f7 30%, #ec4899 60%, #f59e0b 100%);
+  background-size: 220% 220%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-pan 8s ease-in-out infinite;
+}
+.bg-gradient-brand {
+  background: linear-gradient(110deg, #6730cc 0%, #9333ea 35%, #db2777 70%, #f59e0b 100%);
+  background-size: 220% 220%;
+  animation: gradient-pan 10s ease-in-out infinite;
+}
+/* Animated gradient border: put on a wrapper with 1px padding. */
+.border-gradient {
+  background: linear-gradient(120deg, #6730cc, #ec4899, #06b6d4, #6730cc);
+  background-size: 300% 300%;
+  animation: gradient-pan 6s linear infinite;
+}
+
+.animate-fade-up { animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade-in { animation: fade-in 0.5s ease-out both; }
+.animate-float { animation: float 5s ease-in-out infinite; }
+.animate-float-tilt { animation: float-tilt 7s ease-in-out infinite; }
+.animate-glow { animation: glow 6s ease-in-out infinite; }
+
+/* Scroll reveal: elements start hidden and animate in when <Reveal> marks them visible. */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1); transition-delay: var(--delay, 0ms); }
+.reveal.is-visible { opacity: 1; transform: none; }
+
+.shimmer-text {
+  background: linear-gradient(90deg, #6730cc 0%, #a07be8 40%, #6730cc 80%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  .reveal { opacity: 1; transform: none; }
+}
+
+@utility input {
+  @apply w-full rounded-xl border border-line bg-panel px-3 py-2 text-sm text-ink outline-none placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/20;
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium transition duration-200 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60;
+}
+@utility btn-primary {
+  @apply btn bg-[linear-gradient(110deg,#6730cc_0%,#8b3fe0_50%,#b5179e_100%)] bg-[length:200%_100%] bg-left text-on-brand shadow-[0_1px_2px_rgba(103,48,204,0.2)] transition-all hover:-translate-y-0.5 hover:bg-right hover:shadow-[0_12px_28px_-8px_rgba(181,23,158,0.55)];
+}
+@utility btn-outline {
+  @apply btn border border-line bg-page text-ink hover:-translate-y-0.5 hover:border-brand/40 hover:bg-panel hover:shadow-[0_8px_20px_-10px_rgba(16,16,28,0.25)];
+}
+@utility card {
+  @apply rounded-[18px] border border-line bg-panel;
+}
+@utility label {
+  @apply mb-1.5 block text-sm font-medium text-ink;
+}
