@@ -7,16 +7,11 @@ import { ProductCard } from "@/components/product-card";
 import { NewsletterForm } from "@/components/newsletter-form";
 import { accentFor, iconFor, sortCategories } from "@/components/icons";
 import { Reveal } from "@/components/reveal";
-import { CLIENTS } from "@/lib/clients";
+import { getHomeContent } from "@/lib/home-content";
 
 export const revalidate = 300;
 
 
-const testimonials = [
-  { q: "ET-Store has become my go-to place for polished assets that make every client project feel more considered.", n: "Alex Morgan", r: "Brand designer" },
-  { q: "The quality is exceptional and the instant downloads keep my small team moving without slowing down.", n: "Jordan Reed", r: "Founder, Northstar" },
-  { q: "I find something useful every time I visit. It feels like a carefully edited library, not another noisy marketplace.", n: "Sam Kim", r: "Creative consultant" },
-];
 
 const SectionHead = ({ title, href, link }: { title: string; href?: string; link?: string }) => (
   <div className="flex items-end justify-between">
@@ -34,7 +29,8 @@ const SectionHead = ({ title, href, link }: { title: string; href?: string; link
 );
 
 export default async function Home() {
-  const [rawCategories, trending] = await Promise.all([
+  const [content, rawCategories, trending] = await Promise.all([
+    getHomeContent(),
     db.category.findMany({ include: { _count: { select: { products: { where: { published: true } } } } } }),
     db.product.findMany({
       where: { published: true },
@@ -44,36 +40,44 @@ export default async function Home() {
     }),
   ]);
   const categories = sortCategories(rawCategories);
+  const { hero, clients, promo, testimonials, newsletter } = content;
+  const POINT_ICONS = [
+    <Download key="d" className="size-4 text-cyan-500" />,
+    <ShieldCheck key="s" className="size-4 text-emerald-500" />,
+    <BadgeCheck key="b" className="size-4 text-pink-500" />,
+  ];
 
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col px-4 pb-16 sm:px-6">
       {/* Hero */}
       <section className="grid w-full items-center gap-12 py-16 lg:grid-cols-2 lg:py-20">
         <div className="flex flex-col items-start gap-6">
+          {hero.badge && (
           <p className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-brand/20 bg-brand-soft/60 px-3 py-1 text-xs font-semibold tracking-[1.4px] text-brand">
             <span className="relative flex size-2">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
               <span className="relative inline-flex size-2 rounded-full bg-brand" />
             </span>
-            THE VIRTUAL ITEMS STORE
+            {hero.badge}
           </p>
+          )}
           <h1 className="max-w-[576px] text-4xl font-semibold leading-[1.15] tracking-[-1.2px] [perspective:600px] sm:text-5xl sm:leading-[60px]">
-            <span data-split>Rides, frames and entrances that</span>{" "}
-            <span className="text-gradient animate-fade-up inline-block [animation-delay:500ms]">stand out.</span>
+            <span data-split>{hero.title}</span>{" "}
+            {hero.highlight && <span className="text-gradient animate-fade-up inline-block [animation-delay:500ms]">{hero.highlight}</span>}
           </h1>
           <p className="animate-fade-up max-w-[512px] text-lg leading-8 text-muted [animation-delay:160ms]">
-            Style your profile and rooms with rides, frames, badges, chat boxes and more. Make every entrance one to remember.
+            {hero.subtitle}
           </p>
           <div className="animate-fade-up flex flex-wrap gap-3 [animation-delay:240ms]">
-            <Link href="/shop" className="btn-primary group">
-              Explore products <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+            <Link href={hero.primaryHref} className="btn-primary group">
+              {hero.primaryLabel} <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
             </Link>
-            <Link href="#categories" className="btn-outline">Browse categories</Link>
+            {hero.secondaryLabel && hero.secondaryHref && <Link href={hero.secondaryHref} className="btn-outline">{hero.secondaryLabel}</Link>}
           </div>
           <ul className="animate-fade-up flex flex-wrap gap-6 pt-4 text-sm text-muted [animation-delay:320ms]">
-            <li className="flex items-center gap-2"><Download className="size-4 text-cyan-500" />Instant delivery</li>
-            <li className="flex items-center gap-2"><ShieldCheck className="size-4 text-emerald-500" />Works in every room</li>
-            <li className="flex items-center gap-2"><BadgeCheck className="size-4 text-pink-500" />Exclusive designs</li>
+            {hero.points.filter(Boolean).map((pt, i) => (
+              <li key={i} className="flex items-center gap-2">{POINT_ICONS[i % POINT_ICONS.length]}{pt}</li>
+            ))}
           </ul>
         </div>
 
@@ -83,21 +87,24 @@ export default async function Home() {
           <div aria-hidden className="animate-glow absolute left-[65%] top-[60%] size-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-400/40 blur-3xl [animation-delay:-3s]" />
           <div data-parallax="-0.12" className="relative">
             <div className="animate-float-tilt relative h-80 w-64 overflow-hidden rounded-xl shadow-[0_20px_25px_-5px_rgba(0,0,0,0.35)] ring-1 ring-white/10">
-              <Image src="/products/nova-ui-kit.png" alt="ET-Store virtual items preview" fill priority sizes="256px" className="object-cover transition duration-700 group-hover:scale-105" />
+              <Image src={hero.image} alt="ET-Store virtual items preview" fill priority sizes="256px" unoptimized={hero.image.endsWith(".svg") || !hero.image.startsWith("/")} className="object-cover transition duration-700 group-hover:scale-105" />
             </div>
           </div>
+          {hero.statLabel && (
           <div className="animate-float absolute right-8 top-8 rounded-xl border border-white/20 bg-panel px-4 py-3 shadow-lg [animation-delay:1s]">
-            <p className="text-lg font-semibold tabular-nums" data-count="12000" data-suffix="+">12k+</p>
-            <p className="text-xs text-muted">happy users</p>
+            <p className="text-lg font-semibold tabular-nums" data-count={hero.statValue} data-suffix={hero.statSuffix}>{hero.statValue >= 1000 ? `${Math.round(hero.statValue / 1000)}k` : hero.statValue}{hero.statSuffix}</p>
+            <p className="text-xs text-muted">{hero.statLabel}</p>
           </div>
+          )}
         </div>
       </section>
 
       {/* Endless client logo strip */}
+      {clients.enabled && clients.items.length > 0 && (
       <section aria-label="Our clients" className="relative -mx-4 overflow-hidden border-y border-line bg-panel/60 py-5 [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)] sm:-mx-6">
-        <p className="sr-only">Trusted by {CLIENTS.map((c) => c.name).join(", ")}</p>
+        <p className="sr-only">Trusted by {clients.items.map((c) => c.name).join(", ")}</p>
         <div data-marquee className="flex w-max items-center gap-16" aria-hidden>
-          {[...CLIENTS, ...CLIENTS, ...CLIENTS, ...CLIENTS].map((c, i) => (
+          {[...clients.items, ...clients.items, ...clients.items, ...clients.items].map((c, i) => (
             <Image
               key={i}
               src={c.logo}
@@ -111,10 +118,11 @@ export default async function Home() {
           ))}
         </div>
       </section>
+      )}
 
       {/* Categories */}
       <section id="categories" className="flex w-full scroll-mt-20 flex-col gap-6 py-12">
-        <Reveal><SectionHead title="Shop by category" href="/shop" link="View all" /></Reveal>
+        <Reveal><SectionHead title={content.categories.title} href="/shop" link="View all" /></Reveal>
         <div data-stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {categories.map((c) => {
             const Icon = iconFor(c.icon);
@@ -142,49 +150,52 @@ export default async function Home() {
 
       {/* Trending */}
       <section className="flex w-full flex-col gap-6 pb-24 pt-12">
-        <Reveal><SectionHead title="Trending this week" href="/shop" link="See all products" /></Reveal>
+        <Reveal><SectionHead title={content.trending.title} href="/shop" link="See all products" /></Reveal>
         <div data-stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {trending.map((p) => <ProductCard key={p.id} p={p} />)}
         </div>
       </section>
 
       {/* Promo */}
+      {promo.enabled && (
       <Reveal>
         <section className="bg-gradient-brand group relative flex w-full flex-col items-start justify-between gap-6 overflow-hidden rounded-[18px] p-10 shadow-[0_30px_60px_-30px_rgba(219,39,119,0.5)] sm:flex-row sm:items-center">
           <div aria-hidden data-parallax="0.5" className="absolute -right-20 -top-20 size-64 rounded-full bg-amber-300/40 blur-2xl" />
           <div aria-hidden data-parallax="-0.4" className="absolute -bottom-24 left-1/3 size-56 rounded-full bg-cyan-300/30 blur-2xl" />
-          <span aria-hidden data-pop="0.3" className="absolute right-[38%] top-6 hidden rotate-12 rounded-full bg-amber-300 px-3 py-1 text-xs font-bold text-ink shadow-lg sm:block">−25%</span>
+          {promo.tag && <span aria-hidden data-pop="0.3" className="absolute right-[38%] top-6 hidden rotate-12 rounded-full bg-amber-300 px-3 py-1 text-xs font-bold text-ink shadow-lg sm:block">{promo.tag}</span>}
           <div className="relative flex flex-col gap-2">
-            <h2 className="text-3xl font-semibold text-on-brand">Build your next big thing for less</h2>
-            <p className="text-on-brand/80">Save 25% on curated bundles this week.</p>
+            <h2 className="text-3xl font-semibold text-on-brand">{promo.title}</h2>
+            {promo.text && <p className="text-on-brand/80">{promo.text}</p>}
           </div>
-          <Link href="/shop" className="btn relative bg-panel text-ink shadow-sm hover:-translate-y-0.5 hover:shadow-lg">
-            <Gift className="size-4 text-brand" />Shop bundles
+          <Link href={promo.buttonHref} className="btn relative bg-panel text-ink shadow-sm hover:-translate-y-0.5 hover:shadow-lg">
+            <Gift className="size-4 text-brand" />{promo.buttonLabel}
           </Link>
         </section>
       </Reveal>
+      )}
 
       {/* How it works: sticky, spring-smoothed scroll walkthrough */}
-      <HowItWorks />
+      <HowItWorks content={content.howItWorks} />
 
       {/* Testimonials */}
+      {testimonials.enabled && testimonials.items.length > 0 && (
       <section id="resources" className="flex w-full flex-col gap-6 pb-28 pt-24">
-        <Reveal><SectionHead title="Loved by independent makers" /></Reveal>
+        <Reveal><SectionHead title={testimonials.title} /></Reveal>
         <div className="grid gap-5 md:grid-cols-3">
-          {testimonials.map((t, i) => (
-            <Reveal key={t.n} delay={i * 100} className="h-full">
+          {testimonials.items.map((t, i) => (
+            <Reveal key={i} delay={i * 100} className="h-full">
               <figure className="card flex h-full flex-col justify-between gap-5 p-6 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_36px_-20px_rgba(16,16,28,0.3)]">
                 <div>
                   <Quote className="mb-3 size-5 text-brand/40" />
-                  <blockquote className="leading-7 text-muted">“{t.q}”</blockquote>
+                  <blockquote className="leading-7 text-muted">“{t.quote}”</blockquote>
                 </div>
                 <figcaption className="flex items-center gap-3">
                   <span className="grid size-10 place-items-center rounded-full bg-brand-soft font-semibold text-[#292149] dark:text-violet-200">
-                    {t.n.split(" ").map((w) => w[0]).join("")}
+                    {t.name.split(/s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
                   </span>
                   <span>
-                    <span className="block text-sm font-medium">{t.n}</span>
-                    <span className="block text-xs text-muted">{t.r}</span>
+                    <span className="block text-sm font-medium">{t.name}</span>
+                    {t.role && <span className="block text-xs text-muted">{t.role}</span>}
                   </span>
                 </figcaption>
               </figure>
@@ -192,12 +203,13 @@ export default async function Home() {
           ))}
         </div>
       </section>
+      )}
 
       {/* Newsletter */}
       <Reveal>
         <section className="flex w-full flex-col items-center gap-3 rounded-[18px] bg-surface p-10 text-center">
-          <h2 className="text-3xl font-semibold tracking-[-0.75px]">Fresh assets, zero noise</h2>
-          <p className="max-w-[512px] pb-3 text-muted">A thoughtful digest of new digital products, practical resources, and marketplace news.</p>
+          <h2 className="text-3xl font-semibold tracking-[-0.75px]">{newsletter.title}</h2>
+          {newsletter.text && <p className="max-w-[512px] pb-3 text-muted">{newsletter.text}</p>}
           <NewsletterForm large />
         </section>
       </Reveal>

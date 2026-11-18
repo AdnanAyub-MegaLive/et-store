@@ -150,3 +150,10 @@ model NewsletterSubscriber {
   email     String   @unique
   createdAt DateTime @default(now())
 }
+
+/// Editable site content (e.g. key "home" = home page sections), stored as JSON.
+model SiteContent {
+  key       String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
+}

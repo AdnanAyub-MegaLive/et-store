@@ -5,8 +5,23 @@ import { Upload } from "lucide-react";
 import { uploadProductImage } from "@/lib/actions/admin";
 
 /** Product image: upload a file (SVG, PNG, JPG, WebP) or paste a path / https URL. */
-export function ImageField({ initial }: { initial: string }) {
-  const [url, setUrl] = useState(initial);
+export function ImageField({
+  initial,
+  name = "image",
+  label = "Featured image",
+  onChange,
+}: {
+  initial: string;
+  name?: string;
+  label?: string;
+  /** Called with the new path whenever it changes (upload or typing). */
+  onChange?: (url: string) => void;
+}) {
+  const [url, setUrlState] = useState(initial);
+  const setUrl = (v: string) => {
+    setUrlState(v);
+    onChange?.(v);
+  };
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -27,7 +42,7 @@ export function ImageField({ initial }: { initial: string }) {
 
   return (
     <div className="flex flex-col gap-2 sm:col-span-2">
-      <span className="label">Featured image</span>
+      <span className="label">{label}</span>
       <div className="flex flex-wrap items-center gap-4">
         <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-xl border border-line bg-surface">
           {url ? (
@@ -43,7 +58,7 @@ export function ImageField({ initial }: { initial: string }) {
             {pending ? "Uploading…" : "Upload image"}
             <input ref={fileRef} type="file" accept=".svg,.png,.jpg,.jpeg,.webp,image/svg+xml,image/png,image/jpeg,image/webp" onChange={onPick} className="sr-only" />
           </label>
-          <input name="image" value={url} onChange={(e) => setUrl(e.target.value)} required maxLength={500} placeholder="/uploads/... or https://..." aria-label="Image path or URL" className="input" />
+          <input name={name} value={url} onChange={(e) => setUrl(e.target.value)} required maxLength={500} placeholder="/uploads/... or https://..." aria-label="Image path or URL" className="input" />
           <p className="text-xs text-muted">SVG, PNG, JPG or WebP, up to 2 MB. Or paste an image path or https link.</p>
           {error && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{error}</p>}
         </div>

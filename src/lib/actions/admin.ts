@@ -10,6 +10,9 @@ import { randomBytes } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { MAX_UPLOAD_BYTES, UPLOAD_DIR, detectType, unsafeSvgReason } from "@/lib/uploads";
+import type { Prisma } from "@prisma/client";
+import { homeContentSchema } from "@/lib/home-content-schema";
+import { HOME_KEY } from "@/lib/home-content";
 
 const imageUrl = z.string().trim().regex(/^(\/[\w\-./]+|https:\/\/[\w\-./%?=&]+)$/, "Image must be a /path or https URL").max(500);
 
@@ -194,4 +197,33 @@ export async function duplicateProduct(form: FormData) {
   });
   revalidatePath("/admin/products");
   redirect(`/admin/products/${copy.id}`);
+}
+
+export type ContentState = { ok?: boolean; error?: string } | undefined;
+
+/** Save the editable home page content (admin → Home page). */
+export async function saveHomeContent(_: ContentState, form: FormData): Promise<ContentState> {
+  await requireAdmin();
+  let raw: unknown;
+  try {
+    raw = JSON.parse(String(form.get("data") ?? ""));
+  } catch {
+    return { error: "Could not read the form. Please try again." };
+  }
+  const parsed = homeContentSchema.safeParse(raw);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return { error: `${issue.path.join(" › ")}: ${issue.message}` };
+  }
+  const data = parsed.data as unknown as Prisma.InputJsonValue;
+  await db.siteContent.upsert({ where: { key: HOME_KEY }, create: { key: HOME_KEY, data }, update: { data } });
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Put the home page back to the built-in content. */
+export async function resetHomeContent() {
+  await requireAdmin();
+  await db.siteContent.deleteMany({ where: { key: HOME_KEY } });
+  revalidatePath("/", "layout");
 }
