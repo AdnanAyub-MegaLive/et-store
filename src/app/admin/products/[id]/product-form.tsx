@@ -28,7 +28,6 @@ export function ProductForm({ categories, product }: { categories: { id: string;
           {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </label>
-      <F label="Format (e.g. Animated, Static)" name="format" def={p?.format} required maxLength={60} />
       <ImageField initial={p?.image ?? ""} />
       <F label="Badge (optional)" name="badge" def={p?.badge} maxLength={30} />
       <label className="block sm:col-span-2"><span className="label">Features (one per line)</span><textarea name="features" defaultValue={p?.features.join("\n")} rows={4} maxLength={2000} className="input" /></label>

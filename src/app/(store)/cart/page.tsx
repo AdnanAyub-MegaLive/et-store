@@ -45,7 +45,7 @@ export default function CartPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <Link href={`/products/${r.slug}`} className="font-medium">{r.name}</Link>
-                  <p className="text-sm text-muted">{r.category.name} · {r.format}</p>
+                  <p className="text-sm text-muted">{r.category.name}{r.format && ` · ${r.format}`}</p>
                 </div>
                 <div className="flex items-center rounded-xl border border-line">
                   <button aria-label="Decrease" className="p-2" onClick={() => setQty(r.id, r.qty - 1)}><Minus className="size-4" /></button>

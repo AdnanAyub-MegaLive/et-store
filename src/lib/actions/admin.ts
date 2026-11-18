@@ -20,7 +20,7 @@ const productSchema = z.object({
   compare: z.union([z.literal(""), z.coerce.number().min(0).max(100000)]).optional(),
   image: z.string().trim().regex(/^(\/[\w\-./]+|https:\/\/[\w\-./%?=&]+)$/, "Image must be a /path or https URL").max(500),
   badge: z.string().trim().max(30).optional(),
-  format: z.string().trim().min(1).max(60),
+  format: z.string().trim().max(60).optional(), // no longer in the admin form; kept for older items
   categoryId: z.string().cuid(),
   features: z.string().max(2000).optional(),
   published: z.boolean(),
@@ -45,7 +45,7 @@ function toData(d: z.infer<typeof productSchema>) {
     compareCents: d.compare === "" || d.compare === undefined ? null : Math.round(d.compare * 100),
     image: d.image,
     badge: d.badge || null,
-    format: d.format,
+    ...(d.format !== undefined && { format: d.format }),
     categoryId: d.categoryId,
     features: (d.features ?? "").split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 20),
     published: d.published,
@@ -60,7 +60,7 @@ export async function saveProduct(_: FormState, form: FormData): Promise<FormSta
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   try {
     if (typeof id === "string" && id) await db.product.update({ where: { id }, data: toData(parsed.data) });
-    else await db.product.create({ data: toData(parsed.data) });
+    else await db.product.create({ data: { format: "", ...toData(parsed.data) } });
   } catch {
     return { error: "Could not save. Is the slug already used?" };
   }
