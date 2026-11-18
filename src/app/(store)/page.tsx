@@ -7,6 +7,7 @@ import { ProductCard } from "@/components/product-card";
 import { NewsletterForm } from "@/components/newsletter-form";
 import { accentFor, iconFor, sortCategories } from "@/components/icons";
 import { Reveal } from "@/components/reveal";
+import { CLIENTS } from "@/lib/clients";
 
 export const revalidate = 300;
 
@@ -95,21 +96,24 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Endless category strip */}
-      <div className="relative -mx-4 overflow-hidden border-y border-line bg-panel/60 py-4 [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)] sm:-mx-6" aria-hidden>
-        <div data-marquee className="flex w-max gap-10">
-          {[...categories, ...categories, ...categories, ...categories].map((c, i) => {
-            const Icon = iconFor(c.icon);
-            return (
-              <span key={i} className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-muted">
-                <Icon className={`size-4 ${accentFor(c.slug).text}`} />
-                {c.name}
-                <span className="ml-8 text-brand/40">✦</span>
-              </span>
-            );
-          })}
+      {/* Endless client logo strip */}
+      <section aria-label="Our clients" className="relative -mx-4 overflow-hidden border-y border-line bg-panel/60 py-5 [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)] sm:-mx-6">
+        <p className="sr-only">Trusted by {CLIENTS.map((c) => c.name).join(", ")}</p>
+        <div data-marquee className="flex w-max items-center gap-16" aria-hidden>
+          {[...CLIENTS, ...CLIENTS, ...CLIENTS, ...CLIENTS].map((c, i) => (
+            <Image
+              key={i}
+              src={c.logo}
+              alt=""
+              width={150}
+              height={40}
+              unoptimized
+              loading="eager"
+              className="h-9 w-auto opacity-60 grayscale transition duration-300 hover:opacity-100 hover:grayscale-0 dark:brightness-150"
+            />
+          ))}
         </div>
-      </div>
+      </section>
 
       {/* Categories */}
       <section id="categories" className="flex w-full scroll-mt-20 flex-col gap-6 py-12">
