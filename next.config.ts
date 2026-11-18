@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
     rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } },
   },
   images: { formats: ["image/avif", "image/webp"] },
-  experimental: { serverActions: { bodySizeLimit: "1mb" } },
+  experimental: { serverActions: { bodySizeLimit: "3mb" } },
   async headers() {
     return [
       {
@@ -34,6 +34,12 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
         ],
+      },
+      {
+        // Admin-uploaded images: a sandboxing CSP so nothing inside an SVG can ever run, even if opened directly.
+        // Listed after the site-wide rule so this Content-Security-Policy wins for these files.
+        source: "/uploads/:path*",
+        headers: [{ key: "Content-Security-Policy", value: "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox" }],
       },
     ];
   },

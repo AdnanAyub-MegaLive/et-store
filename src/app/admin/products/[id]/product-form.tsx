@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { Product } from "@prisma/client";
 import { saveProduct } from "@/lib/actions/admin";
+import { ImageField } from "./image-field";
 
 function F({ label, name, def, ...rest }: { label: string; name: string; def?: string | number | null } & React.InputHTMLAttributes<HTMLInputElement>) {
   return <label className="block"><span className="label">{label}</span><input name={name} defaultValue={def ?? ""} className="input" {...rest} /></label>;
@@ -28,7 +29,7 @@ export function ProductForm({ categories, product }: { categories: { id: string;
         </select>
       </label>
       <F label="Format (e.g. Animated, Static)" name="format" def={p?.format} required maxLength={60} />
-      <F label="Image (/products/... or https URL)" name="image" def={p?.image ?? "/products/nova-ui-kit.png"} required maxLength={500} />
+      <ImageField initial={p?.image ?? ""} />
       <F label="Badge (optional)" name="badge" def={p?.badge} maxLength={30} />
       <label className="block sm:col-span-2"><span className="label">Features (one per line)</span><textarea name="features" defaultValue={p?.features.join("\n")} rows={4} maxLength={2000} className="input" /></label>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="published" defaultChecked={p?.published ?? true} className="accent-brand" />Published</label>

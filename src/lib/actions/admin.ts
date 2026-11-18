@@ -6,6 +6,10 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import type { FormState } from "./auth";
+import { randomBytes } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { MAX_UPLOAD_BYTES, UPLOAD_DIR, detectType, unsafeSvgReason } from "@/lib/uploads";
 
 const productSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -104,4 +108,27 @@ export async function setUserRole(form: FormData) {
   if (id === me.id) return; // can't demote yourself
   await db.user.update({ where: { id }, data: { role } });
   revalidatePath("/admin/customers");
+}
+
+export type UploadState = { url?: string; error?: string } | undefined;
+
+/** Admin-only image upload for products (SVG, PNG, JPG, WebP up to 2 MB). */
+export async function uploadProductImage(_: UploadState, form: FormData): Promise<UploadState> {
+  await requireAdmin();
+  const file = form.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose an image first." };
+  if (file.size > MAX_UPLOAD_BYTES) return { error: "Image must be 2 MB or smaller." };
+
+  const buf = Buffer.from(await file.arrayBuffer());
+  const ext = detectType(buf);
+  if (!ext) return { error: "Only SVG, PNG, JPG or WebP images are allowed." };
+  if (ext === "svg") {
+    const reason = unsafeSvgReason(buf.toString("utf8"));
+    if (reason) return { error: `This SVG was blocked for safety: ${reason}.` };
+  }
+
+  const name = `${randomBytes(16).toString("hex")}.${ext}`;
+  await mkdir(UPLOAD_DIR, { recursive: true });
+  await writeFile(path.join(UPLOAD_DIR, name), buf);
+  return { url: `/uploads/${name}` };
 }
