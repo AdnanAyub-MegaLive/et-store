@@ -9,7 +9,6 @@ import { accentFor } from "@/components/icons";
 export const metadata: Metadata = { title: "All digital products" };
 
 const PAGE_SIZE = 9;
-const FORMATS = ["Animated", "Static"];
 const SORTS = { featured: "Featured", newest: "Newest", "price-asc": "Price: low to high", "price-desc": "Price: high to low", rating: "Top rated" } as const;
 
 type SP = Promise<Record<string, string | string[] | undefined>>;
@@ -20,7 +19,6 @@ export default async function Shop({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
   const q = one(sp.q).slice(0, 100);
   const cats = many(sp.category).slice(0, 10);
-  const format = FORMATS.includes(one(sp.format)) ? one(sp.format) : "";
   // Optional price range in whole dollars; empty means no limit. Swapped if entered the wrong way round.
   const dollars = (v: string) => (v.trim() === "" || !Number.isFinite(Number(v)) ? null : Math.min(Math.max(Math.floor(Number(v)), 0), 100_000));
   let minPrice = dollars(one(sp.min));
@@ -40,7 +38,6 @@ export default async function Shop({ searchParams }: { searchParams: SP }) {
       ],
     }),
     ...(cats.length && { category: { slug: { in: cats } } }),
-    ...(format && { format: { contains: format, mode: "insensitive" } }),
     ...((minPrice !== null || maxPrice !== null) && {
       priceCents: {
         ...(minPrice !== null && { gte: minPrice * 100 }),
@@ -67,7 +64,6 @@ export default async function Shop({ searchParams }: { searchParams: SP }) {
     const u = new URLSearchParams();
     if (q) u.set("q", q);
     cats.forEach((c) => u.append("category", c));
-    if (format) u.set("format", format);
     if (minPrice !== null) u.set("min", String(minPrice));
     if (maxPrice !== null) u.set("max", String(maxPrice));
     if (sort !== "featured") u.set("sort", sort);
@@ -126,15 +122,6 @@ export default async function Shop({ searchParams }: { searchParams: SP }) {
                 <input type="number" name="max" min={0} step={1} inputMode="numeric" placeholder="Max" aria-label="Maximum price" defaultValue={maxPrice ?? ""} className="h-9 w-full min-w-0 bg-transparent px-1 outline-none placeholder:text-muted" />
               </label>
             </div>
-          </fieldset>
-          <fieldset className="flex flex-col gap-3">
-            <legend className="mb-3 font-semibold">Format</legend>
-            {["", ...FORMATS].map((f) => (
-              <label key={f || "any"} className="flex items-center gap-2">
-                <input type="radio" name="format" value={f} defaultChecked={format === f} className="size-4 accent-brand" />
-                {f || "Any"}
-              </label>
-            ))}
           </fieldset>
           <button className="btn-primary py-2">Apply filters</button>
         </aside>

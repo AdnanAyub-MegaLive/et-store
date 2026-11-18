@@ -71,7 +71,6 @@ export default async function Home() {
             <Link href="#categories" className="btn-outline">Browse categories</Link>
           </div>
           <ul className="animate-fade-up flex flex-wrap gap-6 pt-4 text-sm text-muted [animation-delay:320ms]">
-            <li className="flex items-center gap-2"><Download className="size-4 text-cyan-500" />Instant delivery</li>
             <li className="flex items-center gap-2"><ShieldCheck className="size-4 text-emerald-500" />Works in every room</li>
             <li className="flex items-center gap-2"><BadgeCheck className="size-4 text-pink-500" />Exclusive designs</li>
           </ul>
@@ -89,9 +88,6 @@ export default async function Home() {
           <div className="animate-float absolute right-8 top-8 rounded-xl border border-white/20 bg-panel px-4 py-3 shadow-lg [animation-delay:1s]">
             <p className="text-lg font-semibold tabular-nums" data-count="12000" data-suffix="+">12k+</p>
             <p className="text-xs text-muted">happy users</p>
-          </div>
-          <div className="animate-float absolute bottom-10 left-10 hidden items-center gap-2 rounded-xl bg-panel/95 px-3 py-2 text-xs font-medium shadow-lg sm:flex [animation-delay:2.5s]">
-            <span className="grid size-5 place-items-center rounded-md bg-gradient-to-br from-emerald-400 to-teal-500 text-white"><Download className="size-3" /></span> Instant delivery
           </div>
         </div>
       </section>
