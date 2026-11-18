@@ -7,8 +7,8 @@ import { themeInitScript } from "@/components/theme-toggle";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "ET-Store: Digital tools for work that stands out", template: "%s · ET-Store" },
-  description: "Curated templates, UI kits, guides and resources for creators.",
+  title: { default: "ET-Store: Rides, frames and entrances that stand out", template: "%s · ET-Store" },
+  description: "Rides, frames, dress-ups, badges, entrances, chat boxes, room backgrounds and more for your profile and rooms.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

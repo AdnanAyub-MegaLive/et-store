@@ -54,14 +54,14 @@ export default async function Home() {
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
               <span className="relative inline-flex size-2 rounded-full bg-brand" />
             </span>
-            THE CREATOR&apos;S MARKETPLACE
+            THE VIRTUAL ITEMS STORE
           </p>
           <h1 className="max-w-[576px] text-4xl font-semibold leading-[1.15] tracking-[-1.2px] [perspective:600px] sm:text-5xl sm:leading-[60px]">
-            <span data-split>Digital tools for work that</span>{" "}
-            <span className="text-gradient animate-fade-up inline-block [animation-delay:500ms]">stands out.</span>
+            <span data-split>Rides, frames and entrances that</span>{" "}
+            <span className="text-gradient animate-fade-up inline-block [animation-delay:500ms]">stand out.</span>
           </h1>
           <p className="animate-fade-up max-w-[512px] text-lg leading-8 text-muted [animation-delay:160ms]">
-            Curated templates, systems, and resources that help you move from idea to done, faster.
+            Style your profile and rooms with rides, frames, badges, chat boxes and more. Make every entrance one to remember.
           </p>
           <div className="animate-fade-up flex flex-wrap gap-3 [animation-delay:240ms]">
             <Link href="/shop" className="btn-primary group">
@@ -70,9 +70,9 @@ export default async function Home() {
             <Link href="#categories" className="btn-outline">Browse categories</Link>
           </div>
           <ul className="animate-fade-up flex flex-wrap gap-6 pt-4 text-sm text-muted [animation-delay:320ms]">
-            <li className="flex items-center gap-2"><Download className="size-4 text-cyan-500" />Instant download</li>
-            <li className="flex items-center gap-2"><ShieldCheck className="size-4 text-emerald-500" />Commercial license</li>
-            <li className="flex items-center gap-2"><BadgeCheck className="size-4 text-pink-500" />Curated quality</li>
+            <li className="flex items-center gap-2"><Download className="size-4 text-cyan-500" />Instant delivery</li>
+            <li className="flex items-center gap-2"><ShieldCheck className="size-4 text-emerald-500" />Works in every room</li>
+            <li className="flex items-center gap-2"><BadgeCheck className="size-4 text-pink-500" />Exclusive designs</li>
           </ul>
         </div>
 
@@ -82,15 +82,15 @@ export default async function Home() {
           <div aria-hidden className="animate-glow absolute left-[65%] top-[60%] size-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-400/40 blur-3xl [animation-delay:-3s]" />
           <div data-parallax="-0.12" className="relative">
             <div className="animate-float-tilt relative h-80 w-64 overflow-hidden rounded-xl shadow-[0_20px_25px_-5px_rgba(0,0,0,0.35)] ring-1 ring-white/10">
-              <Image src="/products/nova-ui-kit.png" alt="Nova digital product mockup" fill priority sizes="256px" className="object-cover transition duration-700 group-hover:scale-105" />
+              <Image src="/products/nova-ui-kit.png" alt="ET-Store virtual items preview" fill priority sizes="256px" className="object-cover transition duration-700 group-hover:scale-105" />
             </div>
           </div>
           <div className="animate-float absolute right-8 top-8 rounded-xl border border-white/20 bg-panel px-4 py-3 shadow-lg [animation-delay:1s]">
             <p className="text-lg font-semibold tabular-nums" data-count="12000" data-suffix="+">12k+</p>
-            <p className="text-xs text-muted">creators</p>
+            <p className="text-xs text-muted">happy users</p>
           </div>
           <div className="animate-float absolute bottom-10 left-10 hidden items-center gap-2 rounded-xl bg-panel/95 px-3 py-2 text-xs font-medium shadow-lg sm:flex [animation-delay:2.5s]">
-            <span className="grid size-5 place-items-center rounded-md bg-gradient-to-br from-emerald-400 to-teal-500 text-white"><Download className="size-3" /></span> Instant access
+            <span className="grid size-5 place-items-center rounded-md bg-gradient-to-br from-emerald-400 to-teal-500 text-white"><Download className="size-3" /></span> Instant delivery
           </div>
         </div>
       </section>
