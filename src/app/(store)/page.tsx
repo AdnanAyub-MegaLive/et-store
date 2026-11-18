@@ -71,6 +71,7 @@ export default async function Home() {
             <Link href="#categories" className="btn-outline">Browse categories</Link>
           </div>
           <ul className="animate-fade-up flex flex-wrap gap-6 pt-4 text-sm text-muted [animation-delay:320ms]">
+            <li className="flex items-center gap-2"><Download className="size-4 text-cyan-500" />Instant delivery</li>
             <li className="flex items-center gap-2"><ShieldCheck className="size-4 text-emerald-500" />Works in every room</li>
             <li className="flex items-center gap-2"><BadgeCheck className="size-4 text-pink-500" />Exclusive designs</li>
           </ul>
