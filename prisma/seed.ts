@@ -87,7 +87,7 @@ async function main() {
   const existing = await db.user.findUnique({ where: { email: adminEmail } });
   if (!existing) {
     const password = process.env.ADMIN_PASSWORD || randomBytes(12).toString("base64url");
-    await db.user.create({ data: { email: adminEmail, name: "Maya Chen", role: "ADMIN", passwordHash: await bcrypt.hash(password, 12) } });
+    await db.user.create({ data: { email: adminEmail, name: "Sufian", role: "ADMIN", passwordHash: await bcrypt.hash(password, 12) } });
     console.log(`Admin created: ${adminEmail}${process.env.ADMIN_PASSWORD ? " (password from ADMIN_PASSWORD)" : ` / ${password}  <- store this, it is not shown again`}`);
   }
 
