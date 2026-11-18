@@ -1,21 +1,43 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { db } from "@/lib/db";
 import { money } from "@/lib/format";
-import { setProductPublished } from "@/lib/actions/admin";
+import { duplicateProduct, setProductPublished } from "@/lib/actions/admin";
 import { DeleteButton } from "./delete-button";
 
 const action = "rounded-lg px-2.5 py-1 font-medium transition hover:underline";
 
-export default async function ProductsPage() {
-  const products = await db.product.findMany({ orderBy: { createdAt: "desc" }, include: { category: { select: { name: true } }, _count: { select: { orderItems: true } } } });
+export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
+  const raw = (await searchParams).q;
+  const q = (Array.isArray(raw) ? raw[0] : raw ?? "").trim().slice(0, 100);
+  const products = await db.product.findMany({
+    where: q
+      ? {
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            { slug: { contains: q, mode: "insensitive" } },
+            { category: { name: { contains: q, mode: "insensitive" } } },
+          ],
+        }
+      : undefined,
+    orderBy: { createdAt: "desc" },
+    include: { category: { select: { name: true } }, _count: { select: { orderItems: true } } },
+  });
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Products</h1>
-        <Link href="/admin/products/new" className="btn-primary py-2"><Plus className="size-4" />New product</Link>
+        <div className="flex flex-1 flex-wrap items-center justify-end gap-3">
+          <form action="/admin/products" role="search" className="flex w-full max-w-sm items-center gap-2 rounded-xl border border-line bg-panel px-3 transition focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/10">
+            <Search className="size-4 shrink-0 text-muted" aria-hidden />
+            <input name="q" defaultValue={q} placeholder="Search by name or category" aria-label="Search products" className="h-10 w-full bg-transparent text-sm outline-none placeholder:text-muted" />
+            {q && <Link href="/admin/products" aria-label="Clear search" className="rounded-md p-1 text-muted hover:bg-surface hover:text-ink"><X className="size-4" /></Link>}
+          </form>
+          <Link href="/admin/products/new" className="btn-primary py-2"><Plus className="size-4" />New product</Link>
+        </div>
       </div>
+      {q && <p className="-mt-3 text-sm text-muted">{products.length} result{products.length === 1 ? "" : "s"} for &ldquo;{q}&rdquo;</p>}
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="border-b border-line text-left">{["Product", "Category", "Price", "Sold", "Status", ""].map((h) => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}</tr></thead>
@@ -44,6 +66,10 @@ export default async function ProductsPage() {
                         <button className={`${action} text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/15`} title="Show in the store">Publish</button>
                       )}
                     </form>
+                    <form action={duplicateProduct} className="inline">
+                      <input type="hidden" name="id" value={p.id} />
+                      <button className={`${action} text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-500/15`} title="Make a copy as a draft">Duplicate</button>
+                    </form>
                     {p._count.orderItems ? (
                       <span className={`${action} cursor-not-allowed text-muted opacity-50 hover:no-underline`} title="This product has orders, so it can't be deleted. Use Draft to hide it.">Delete</span>
                     ) : (
@@ -53,6 +79,9 @@ export default async function ProductsPage() {
                 </td>
               </tr>
             ))}
+            {products.length === 0 && (
+              <tr><td colSpan={6} className="px-4 py-10 text-center text-muted">{q ? "No products match your search." : "No products yet."}</td></tr>
+            )}
           </tbody>
         </table>
       </div>

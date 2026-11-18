@@ -141,3 +141,40 @@ export async function setProductPublished(form: FormData) {
   await db.product.update({ where: { id }, data: { published } });
   revalidatePath("/", "layout");
 }
+
+/** Copy a product as a new draft and open it for editing. */
+export async function duplicateProduct(form: FormData) {
+  await requireAdmin();
+  const id = z.string().cuid().parse(form.get("id"));
+  const p = await db.product.findUnique({ where: { id } });
+  if (!p) return;
+
+  // Find a free slug: name-copy, name-copy-2, name-copy-3 ...
+  const base = `${p.slug}-copy`.slice(0, 110);
+  const taken = new Set((await db.product.findMany({ where: { slug: { startsWith: base } }, select: { slug: true } })).map((x) => x.slug));
+  let slug = base;
+  for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
+
+  const copy = await db.product.create({
+    data: {
+      slug,
+      name: `${p.name} (copy)`.slice(0, 120),
+      tagline: p.tagline,
+      description: p.description,
+      priceCents: p.priceCents,
+      compareCents: p.compareCents,
+      image: p.image,
+      badge: p.badge,
+      format: p.format,
+      creator: p.creator,
+      fileTypes: p.fileTypes,
+      fileSize: p.fileSize,
+      features: p.features,
+      categoryId: p.categoryId,
+      published: false, // copies start hidden until you're ready
+      featured: false,
+    },
+  });
+  revalidatePath("/admin/products");
+  redirect(`/admin/products/${copy.id}`);
+}
