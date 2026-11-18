@@ -71,8 +71,9 @@ export default async function Shop({ searchParams }: { searchParams: SP }) {
     return `/shop${u.size ? `?${u}` : ""}`;
   };
 
+  // key: remount the form when the URL changes so checkboxes and inputs reset (e.g. after "Clear all").
   return (
-    <form action="/shop" className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6">
+    <form key={href(page)} action="/shop" className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6">
       <p className="text-sm text-muted">
         <Link href="/">Home</Link> / Browse
       </p>

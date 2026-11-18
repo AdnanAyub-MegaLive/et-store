@@ -24,6 +24,10 @@ const img = { nova: "/products/nova-ui-kit.png", social: "/products/social-launc
 const products = [
   ["neon-supercar", "Neon Supercar", "ride", 2900, 3900, img.nova, "Featured", "Animated", 4.9, 128, true],
   ["royal-chariot", "Royal Chariot", "ride", 1900, null, img.studio, null, "Animated", 4.7, 54, false],
+  ["thunder-motorbike", "Thunder Motorbike", "ride", 2400, 2900, img.social, "New", "Animated", 4.8, 61, false],
+  ["dragon-flight", "Dragon Flight", "ride", 3900, 4900, img.book, "Popular", "Animated", 4.9, 97, false],
+  ["golden-yacht", "Golden Yacht", "ride", 3400, null, img.studio, null, "Animated", 4.7, 38, false],
+  ["street-scooter", "Street Scooter", "ride", 900, null, img.nova, null, "Static", 4.5, 22, false],
   ["golden-crown-frame", "Golden Crown Frame", "frame", 1200, 1600, img.social, "Popular", "Animated", 4.8, 94, true],
   ["galaxy-ring-frame", "Galaxy Ring Frame", "frame", 900, null, img.nova, null, "Static", 4.6, 41, false],
   ["street-style-outfit", "Street Style Outfit", "dress-up", 1500, null, img.book, "New", "Animated", 4.8, 77, false],
