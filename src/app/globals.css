@@ -173,3 +173,8 @@ html, body {
 @utility label {
   @apply mb-1.5 block text-sm font-medium text-ink;
 }
+
+/* Tailwind v4 leaves buttons with the default arrow cursor; show a hand on every clickable button. */
+:where(button:not(:disabled), [role="button"]:not([aria-disabled="true"])) {
+  cursor: pointer;
+}

@@ -30,10 +30,10 @@ export default async function ProductsPage() {
                 <td className="px-4 py-3">{p._count.orderItems}</td>
                 <td className="px-4 py-3">{p.published ? <span className="text-brand">Published</span> : <span className="text-muted">Draft</span>}</td>
                 <td className="px-4 py-3 text-right">
-                  <Link href={`/admin/products/${p.id}`} className="mr-4 text-brand">Edit</Link>
+                  <Link href={`/admin/products/${p.id}`} className="mr-2 rounded-lg px-2.5 py-1 text-brand transition hover:bg-brand-soft hover:underline">Edit</Link>
                   <form action={deleteProduct} className="inline">
                     <input type="hidden" name="id" value={p.id} />
-                    <button className="text-red-600" title={p._count.orderItems ? "Has orders, so it will be unpublished" : "Delete"}>{p._count.orderItems ? "Unpublish" : "Delete"}</button>
+                    <button className="cursor-pointer rounded-lg px-2.5 py-1 text-red-600 transition hover:bg-red-50 hover:text-red-700 hover:underline dark:text-red-400 dark:hover:bg-red-500/15 dark:hover:text-red-300" title={p._count.orderItems ? "Has orders, so it will be unpublished" : "Delete"}>{p._count.orderItems ? "Unpublish" : "Delete"}</button>
                   </form>
                 </td>
               </tr>
