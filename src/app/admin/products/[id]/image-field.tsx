@@ -27,7 +27,7 @@ export function ImageField({ initial }: { initial: string }) {
 
   return (
     <div className="flex flex-col gap-2 sm:col-span-2">
-      <span className="label">Image</span>
+      <span className="label">Featured image</span>
       <div className="flex flex-wrap items-center gap-4">
         <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-xl border border-line bg-surface">
           {url ? (

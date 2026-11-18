@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { money } from "@/lib/format";
 import { BuyButtons } from "./buy-buttons";
 import { accentFor } from "@/components/icons";
+import { ProductGallery } from "@/components/product-gallery";
 
 const FEATURE_COLORS = ["from-violet-500 to-indigo-500", "from-pink-500 to-rose-500", "from-cyan-400 to-sky-500", "from-emerald-400 to-teal-500", "from-amber-400 to-orange-500", "from-fuchsia-500 to-purple-500"];
 
@@ -43,18 +44,8 @@ export default async function ProductPage({ params, searchParams }: P & { search
       </nav>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-2">
-        <div data-slide="left" className="flex flex-col gap-4">
-          <div className="group relative aspect-square overflow-hidden rounded-[18px] border border-line bg-surface">
-            <Image src={p.image} alt={p.name} fill priority sizes="(max-width:1024px) 100vw, 50vw" className="object-cover transition duration-700 group-hover:scale-105" />
-            <span className="absolute left-3 top-3 rounded-lg bg-panel/90 px-3 py-1 text-xs font-medium">Preview</span>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className={`relative aspect-square cursor-pointer overflow-hidden rounded-xl border-2 transition hover:-translate-y-0.5 hover:border-brand ${i === 0 ? "border-brand" : "border-line"}`}>
-                <Image src={p.image} alt="" fill sizes="20vw" className="object-cover" />
-              </div>
-            ))}
-          </div>
+        <div data-slide="left">
+          <ProductGallery name={p.name} images={[p.image, ...p.gallery]} />
         </div>
 
         <div data-slide="right" className="flex flex-col gap-5">

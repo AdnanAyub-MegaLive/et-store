@@ -11,6 +11,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { MAX_UPLOAD_BYTES, UPLOAD_DIR, detectType, unsafeSvgReason } from "@/lib/uploads";
 
+const imageUrl = z.string().trim().regex(/^(\/[\w\-./]+|https:\/\/[\w\-./%?=&]+)$/, "Image must be a /path or https URL").max(500);
+
 const productSchema = z.object({
   name: z.string().trim().min(2).max(120),
   slug: z.string().trim().toLowerCase().regex(/^[a-z0-9-]+$/, "Slug: lowercase letters, numbers, dashes").max(120),
@@ -18,7 +20,20 @@ const productSchema = z.object({
   description: z.string().trim().min(2).max(5000),
   price: z.coerce.number().min(0).max(100000),
   compare: z.union([z.literal(""), z.coerce.number().min(0).max(100000)]).optional(),
-  image: z.string().trim().regex(/^(\/[\w\-./]+|https:\/\/[\w\-./%?=&]+)$/, "Image must be a /path or https URL").max(500),
+  image: imageUrl,
+  gallery: z
+    .string()
+    .optional()
+    .transform((s, ctx) => {
+      if (!s) return [];
+      try {
+        return JSON.parse(s) as unknown;
+      } catch {
+        ctx.addIssue({ code: "custom", message: "Gallery images are invalid" });
+        return z.NEVER;
+      }
+    })
+    .pipe(z.array(imageUrl).max(10, "Up to 10 gallery images")),
   badge: z.string().trim().max(30).optional(),
   format: z.string().trim().max(60).optional(), // no longer in the admin form; kept for older items
   categoryId: z.string().cuid(),
@@ -44,6 +59,7 @@ function toData(d: z.infer<typeof productSchema>) {
     priceCents: Math.round(d.price * 100),
     compareCents: d.compare === "" || d.compare === undefined ? null : Math.round(d.compare * 100),
     image: d.image,
+    gallery: d.gallery,
     badge: d.badge || null,
     ...(d.format !== undefined && { format: d.format }),
     categoryId: d.categoryId,
@@ -164,6 +180,7 @@ export async function duplicateProduct(form: FormData) {
       priceCents: p.priceCents,
       compareCents: p.compareCents,
       image: p.image,
+      gallery: p.gallery,
       badge: p.badge,
       format: p.format,
       creator: p.creator,
