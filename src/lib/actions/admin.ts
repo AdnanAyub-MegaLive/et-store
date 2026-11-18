@@ -132,3 +132,12 @@ export async function uploadProductImage(_: UploadState, form: FormData): Promis
   await writeFile(path.join(UPLOAD_DIR, name), buf);
   return { url: `/uploads/${name}` };
 }
+
+/** Move a product to draft (hidden from the store) or publish it again. */
+export async function setProductPublished(form: FormData) {
+  await requireAdmin();
+  const id = z.string().cuid().parse(form.get("id"));
+  const published = form.get("published") === "1";
+  await db.product.update({ where: { id }, data: { published } });
+  revalidatePath("/", "layout");
+}
