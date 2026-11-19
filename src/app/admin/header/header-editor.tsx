@@ -99,7 +99,7 @@ export function HeaderEditor({ initial }: { initial: HeaderContent }) {
             <Field label="Label" value={l.label} max={30} onChange={(v) => setLink(i, { label: v })} />
             <Field label="Link" value={l.href} max={300} placeholder="/shop" onChange={(v) => setLink(i, { href: v })} />
             <label className="flex h-10 cursor-pointer items-center gap-2 text-sm">
-              <input type="checkbox" checked={l.dropdown} onChange={(e) => setLink(i, { dropdown: e.target.checked })} className="size-4 accent-brand" />
+              <input type="checkbox" checked={l.dropdown} onChange={() => setLink(i, { dropdown: !l.dropdown })} className="size-4 accent-brand" />
               Categories dropdown
             </label>
             <div className="flex h-10 items-center gap-1">
@@ -126,7 +126,7 @@ export function HeaderEditor({ initial }: { initial: HeaderContent }) {
         <div className="flex flex-wrap gap-6">
           {ICONS.map(({ key, label }) => (
             <label key={key} className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-              <input type="checkbox" checked={c.icons[key]} onChange={(e) => update((x) => ({ ...x, icons: { ...x.icons, [key]: e.target.checked } }))} className="size-4 accent-brand" />
+              <input type="checkbox" checked={c.icons[key]} onChange={() => { const on = !c.icons[key]; update((x) => ({ ...x, icons: { ...x.icons, [key]: on } })); }} className="size-4 accent-brand" />
               {label}
             </label>
           ))}

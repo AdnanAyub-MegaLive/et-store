@@ -10,6 +10,18 @@ import {
   MessageSquare,
   PanelsTopLeft,
   Shirt,
+  Crown,
+  Gem,
+  Gift,
+  Sparkles,
+  Star,
+  Music,
+  Palette,
+  Gamepad2,
+  Heart,
+  Zap,
+  Smile,
+  Rocket,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,6 +37,18 @@ export const categoryIcons: Record<string, LucideIcon> = {
   home: House,
   panels: PanelsTopLeft,
   "credit-card": CreditCard,
+  crown: Crown,
+  gem: Gem,
+  gift: Gift,
+  sparkles: Sparkles,
+  star: Star,
+  music: Music,
+  palette: Palette,
+  gamepad: Gamepad2,
+  heart: Heart,
+  zap: Zap,
+  smile: Smile,
+  rocket: Rocket,
 };
 export const iconFor = (name: string) => categoryIcons[name] ?? Frame;
 
@@ -37,9 +61,3 @@ const ACCENT = {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const accentFor = (slug: string) => ACCENT;
 
-/** Display order for categories (header menu, home page). */
-export const CATEGORY_ORDER = ["ride", "frame", "dress-up", "profile-bg", "seats", "entrance", "badge", "chat-box", "room-bg", "room-frames", "card"];
-export const sortCategories = <T extends { slug: string }>(list: T[]) => {
-  const rank = (slug: string) => CATEGORY_ORDER.indexOf(slug) + 1 || 99;
-  return [...list].sort((a, b) => rank(a.slug) - rank(b.slug));
-};

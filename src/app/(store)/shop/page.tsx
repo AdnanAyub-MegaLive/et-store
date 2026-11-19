@@ -54,7 +54,7 @@ export default async function Shop({ searchParams }: { searchParams: SP }) {
   }[sort];
 
   const [categories, total, products] = await Promise.all([
-    db.category.findMany({ orderBy: { name: "asc" }, include: { _count: { select: { products: { where: { published: true } } } } } }),
+    db.category.findMany({ orderBy: [{ position: "asc" }, { name: "asc" }], include: { _count: { select: { products: { where: { published: true } } } } } }),
     db.product.count({ where }),
     db.product.findMany({ where, orderBy, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { category: { select: { name: true } } } }),
   ]);

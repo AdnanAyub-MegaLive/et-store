@@ -5,7 +5,7 @@ import { ProductForm } from "./product-form";
 export default async function EditProduct({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [categories, product] = await Promise.all([
-    db.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.category.findMany({ orderBy: [{ position: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
     id === "new" ? null : db.product.findUnique({ where: { id } }),
   ]);
   if (id !== "new" && !product) notFound();

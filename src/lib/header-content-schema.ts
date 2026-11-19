@@ -42,7 +42,6 @@ export const HEADER_DEFAULTS: HeaderContent = {
   logo: { image: "", mark: "ET", text: "ET", highlight: "-Store" },
   links: [
     { label: "Browse", href: "/shop", dropdown: false },
-    { label: "Categories", href: "/#categories", dropdown: true },
     { label: "Bundles", href: "/shop?sort=featured", dropdown: false },
     { label: "Resources", href: "/#resources", dropdown: false },
   ],

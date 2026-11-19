@@ -3,13 +3,13 @@ import { Heart, ShoppingBag, User } from "lucide-react";
 import { SearchDialog } from "./search-dialog";
 import { getCurrentUser } from "@/lib/session";
 import { db } from "@/lib/db";
-import { sortCategories } from "./icons";
 import { CartCount } from "./cart";
 import { FavoritesCount } from "./favorites-context";
 import { NavLinks } from "./nav-links";
 import { HeaderShell } from "./header-shell";
 import { ThemeToggle } from "./theme-toggle";
 import { getHeaderContent } from "@/lib/home-content";
+import { iconFor } from "./icons";
 
 const iconBtn = "relative grid size-9 place-items-center rounded-xl transition hover:bg-surface hover:text-brand active:scale-90";
 
@@ -54,7 +54,7 @@ export async function Logo() {
 export async function SiteHeader() {
   const [user, categories, header] = await Promise.all([
     getCurrentUser(),
-    db.category.findMany({ select: { slug: true, name: true, icon: true } }),
+    db.category.findMany({ orderBy: [{ position: "asc" }, { name: "asc" }], select: { slug: true, name: true, icon: true } }),
     getHeaderContent(),
   ]);
   const { icons } = header;
@@ -63,7 +63,8 @@ export async function SiteHeader() {
     <HeaderShell>
       <nav className="mx-auto flex h-16 max-w-[1280px] items-center gap-4 px-4 sm:px-6 lg:gap-8" aria-label="Primary navigation">
         <Logo />
-        <NavLinks links={header.links} categories={sortCategories(categories)} />
+        {/* Categories now live in the sub-header below, so dropdown links are hidden here. */}
+        <NavLinks links={header.links.filter((l) => !l.dropdown)} categories={[]} />
         <div className="ml-auto flex items-center gap-1">
           {icons.search && <SearchDialog className={iconBtn} />}
           {icons.favorites && (
@@ -84,6 +85,23 @@ export async function SiteHeader() {
           {icons.theme && <ThemeToggle />}
         </div>
       </nav>
+      {categories.length > 0 && (
+        <div className="border-t border-line/70">
+          <ul className="no-scrollbar mx-auto flex h-11 max-w-[1280px] items-center gap-1 overflow-x-auto px-4 text-sm sm:px-6" aria-label="Categories">
+            {categories.map((c) => {
+              const Icon = iconFor(c.icon);
+              return (
+                <li key={c.slug} className="shrink-0">
+                  <Link href={`/shop?category=${c.slug}`} className="group flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-muted transition hover:bg-brand-soft hover:text-brand">
+                    <Icon className="size-4 text-violet-500 transition group-hover:text-pink-500" />
+                    {c.name}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </HeaderShell>
   );
 }

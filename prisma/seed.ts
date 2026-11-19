@@ -51,18 +51,10 @@ const products = [
 ] as const;
 
 async function main() {
-  // Remove categories that are no longer in the list above, along with their products.
-  const keep = categories.map((c) => c.slug);
-  const oldProducts = await db.product.findMany({ where: { category: { slug: { notIn: keep } } }, select: { id: true } });
-  if (oldProducts.length) {
-    const ids = oldProducts.map((p) => p.id);
-    await db.orderItem.deleteMany({ where: { productId: { in: ids } } });
-    await db.order.deleteMany({ where: { items: { none: {} } } });
-    await db.product.deleteMany({ where: { id: { in: ids } } });
+  // Seed only ADDS missing categories/products. It never changes or deletes what was edited in admin.
+  for (const [i, c] of categories.entries()) {
+    await db.category.upsert({ where: { slug: c.slug }, create: { ...c, position: i + 1 }, update: {} });
   }
-  await db.category.deleteMany({ where: { slug: { notIn: keep } } });
-
-  for (const c of categories) await db.category.upsert({ where: { slug: c.slug }, create: c, update: c });
   const cats = Object.fromEntries((await db.category.findMany()).map((c) => [c.slug, c.id]));
 
   for (const [slug, name, cat, price, compare, image, badge, format, rating, reviews, featured] of products) {
@@ -84,7 +76,7 @@ async function main() {
       features: [format === "Animated" ? "Animated effect" : "HD artwork", "Instant delivery", "Visible to everyone", "Works in all rooms", "Equip anytime", "Free updates"],
       categoryId: cats[cat],
     };
-    await db.product.upsert({ where: { slug }, create: { slug, ...data }, update: data });
+    await db.product.upsert({ where: { slug }, create: { slug, ...data }, update: {} });
   }
 
   const adminEmail = (process.env.ADMIN_EMAIL ?? "admin@lumamarket.test").toLowerCase();

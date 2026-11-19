@@ -255,3 +255,66 @@ export async function resetHeaderContent() {
   await db.siteContent.deleteMany({ where: { key: HEADER_KEY } });
   revalidatePath("/", "layout");
 }
+
+// ---------- Categories ----------
+
+const categorySchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(40),
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(60)
+    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Slug: lowercase letters, numbers and single dashes"),
+  icon: z.string().trim().max(40),
+});
+
+export type CategoryState = { ok?: boolean; error?: string } | undefined;
+
+const slugify = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+
+/** Create a category, or update it when an id is sent. */
+export async function saveCategory(_: CategoryState, form: FormData): Promise<CategoryState> {
+  await requireAdmin();
+  const id = String(form.get("id") ?? "");
+  const name = String(form.get("name") ?? "");
+  const parsed = categorySchema.safeParse({ name, slug: String(form.get("slug") || "") || slugify(name), icon: form.get("icon") ?? "" });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  try {
+    if (id) {
+      await db.category.update({ where: { id: z.string().cuid().parse(id) }, data: parsed.data });
+    } else {
+      const last = await db.category.aggregate({ _max: { position: true } });
+      await db.category.create({ data: { ...parsed.data, position: (last._max.position ?? 0) + 1 } });
+    }
+  } catch {
+    return { error: "A category with this name or slug already exists." };
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Delete a category. Blocked while products still use it, so nothing disappears by accident. */
+export async function deleteCategory(_: CategoryState, form: FormData): Promise<CategoryState> {
+  await requireAdmin();
+  const id = z.string().cuid().parse(form.get("id"));
+  const used = await db.product.count({ where: { categoryId: id } });
+  if (used) return { error: `This category still has ${used} product${used === 1 ? "" : "s"}. Move or delete them first.` };
+  await db.category.delete({ where: { id } });
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Move a category one place up or down in the menu. */
+export async function moveCategory(form: FormData) {
+  await requireAdmin();
+  const id = z.string().cuid().parse(form.get("id"));
+  const dir = form.get("dir") === "up" ? -1 : 1;
+  const list = await db.category.findMany({ orderBy: [{ position: "asc" }, { name: "asc" }], select: { id: true } });
+  const i = list.findIndex((c) => c.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  await db.$transaction(list.map((c, k) => db.category.update({ where: { id: c.id }, data: { position: k + 1 } })));
+  revalidatePath("/", "layout");
+}

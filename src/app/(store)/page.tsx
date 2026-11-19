@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { HowItWorks } from "@/components/how-it-works";
 import { ProductCard } from "@/components/product-card";
 import { NewsletterForm } from "@/components/newsletter-form";
-import { accentFor, iconFor, sortCategories } from "@/components/icons";
+import { accentFor, iconFor } from "@/components/icons";
 import { Reveal } from "@/components/reveal";
 import { getHomeContent } from "@/lib/home-content";
 
@@ -31,7 +31,7 @@ const SectionHead = ({ title, href, link }: { title: string; href?: string; link
 export default async function Home() {
   const [content, rawCategories, trending] = await Promise.all([
     getHomeContent(),
-    db.category.findMany({ include: { _count: { select: { products: { where: { published: true } } } } } }),
+    db.category.findMany({ orderBy: [{ position: "asc" }, { name: "asc" }], include: { _count: { select: { products: { where: { published: true } } } } } }),
     db.product.findMany({
       where: { published: true },
       orderBy: [{ featured: "desc" }, { reviewCount: "desc" }],
@@ -39,7 +39,7 @@ export default async function Home() {
       include: { category: { select: { name: true } } },
     }),
   ]);
-  const categories = sortCategories(rawCategories);
+  const categories = rawCategories;
   const { hero, clients, promo, testimonials, newsletter } = content;
   const POINT_ICONS = [
     <Download key="d" className="size-4 text-cyan-500" />,

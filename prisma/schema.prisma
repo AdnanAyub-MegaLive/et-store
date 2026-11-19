@@ -48,7 +48,8 @@ model Category {
   id       String    @id @default(cuid())
   name     String    @unique
   slug     String    @unique
-  icon     String    @default("layout-template")
+  icon     String    @default("frame")
+  position Int       @default(0)
   products Product[]
 }
 

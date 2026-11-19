@@ -81,6 +81,11 @@ export async function placeOrder(input: unknown): Promise<CheckoutResult> {
   const parsed = checkoutSchema.safeParse(input);
   if (!parsed.success) return { error: "Please fill in all required fields correctly." };
   const d = parsed.data;
+  // Fail early (and clearly) instead of creating an order that can never be paid.
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.error("[stripe] STRIPE_SECRET_KEY is empty in .env, so checkout is turned off.");
+    return { error: "Online payment is not set up yet. Please try again later." };
+  }
 
   // Never trust client prices: re-price everything from the database.
   const products = await db.product.findMany({
