@@ -72,7 +72,13 @@ export default async function Home() {
             <Link href={hero.primaryHref} className="btn-primary group">
               {hero.primaryLabel} <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
             </Link>
-            {hero.secondaryLabel && hero.secondaryHref && <Link href={hero.secondaryHref} className="btn-outline">{hero.secondaryLabel}</Link>}
+            {hero.secondaryLabel && hero.secondaryHref && (hero.secondaryHref.startsWith("https://") ? (
+              <a href={hero.secondaryHref} target="_blank" rel="noopener noreferrer" className="btn-outline group">
+                <Download className="size-4 transition-transform group-hover:translate-y-0.5" />{hero.secondaryLabel}
+              </a>
+            ) : (
+              <Link href={hero.secondaryHref} className="btn-outline">{hero.secondaryLabel}</Link>
+            ))}
           </div>
           <ul className="animate-fade-up flex flex-wrap gap-6 pt-4 text-sm text-muted [animation-delay:320ms]">
             {hero.points.filter(Boolean).map((pt, i) => (

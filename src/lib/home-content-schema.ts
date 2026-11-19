@@ -66,8 +66,8 @@ export const HOME_DEFAULTS: HomeContent = {
     "subtitle": "Ride in style, frame your profile, dress up your avatar and decorate your room with BGs, seats, chat boxes and cards. Everything you need to shine in every room.",
     "primaryLabel": "Shop all items",
     "primaryHref": "/shop",
-    "secondaryLabel": "Browse categories",
-    "secondaryHref": "#categories",
+    "secondaryLabel": "Download the app",
+    "secondaryHref": "https://play.google.com/store/apps/details?id=com.megachat.megalive",
     "points": [
       "Instant delivery",
       "Works in every room",
