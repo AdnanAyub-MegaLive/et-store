@@ -87,13 +87,13 @@ export async function SiteHeader() {
       </nav>
       {categories.length > 0 && (
         <div className="border-t border-line/70">
-          <ul className="no-scrollbar mx-auto flex h-11 max-w-[1280px] items-center gap-1 overflow-x-auto px-4 text-sm sm:px-6 xl:justify-between" aria-label="Categories">
+          <ul className="no-scrollbar mx-auto flex h-12 max-w-[1280px] items-center gap-1 overflow-x-auto px-4 text-base sm:px-6 xl:justify-between" aria-label="Categories">
             {categories.map((c) => {
               const Icon = iconFor(c.icon);
               return (
                 <li key={c.slug} className="shrink-0">
-                  <Link href={`/shop?category=${c.slug}`} className="group flex items-center gap-1.5 rounded-lg py-1.5 font-semibold px-3 xl:px-2 text-muted transition hover:bg-brand-soft hover:text-brand">
-                    <Icon className="size-4 text-violet-500 transition group-hover:text-pink-500" />
+                  <Link href={`/shop?category=${c.slug}`} className="group flex items-center gap-2 rounded-lg py-1.5 font-bold px-3 xl:px-2 text-ink/80 transition hover:bg-brand-soft hover:text-brand">
+                    <Icon className="size-5 text-violet-500 transition group-hover:text-pink-500" />
                     {c.name}
                   </Link>
                 </li>
