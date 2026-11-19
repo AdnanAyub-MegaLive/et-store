@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/session";
 import { db } from "@/lib/db";
 import { sortCategories } from "./icons";
 import { CartCount } from "./cart";
+import { FavoritesCount } from "./favorites-context";
 import { NavLinks } from "./nav-links";
 import { HeaderShell } from "./header-shell";
 import { ThemeToggle } from "./theme-toggle";
@@ -66,8 +67,9 @@ export async function SiteHeader() {
         <div className="ml-auto flex items-center gap-1">
           {icons.search && <SearchDialog className={iconBtn} />}
           {icons.favorites && (
-            <Link href={user ? "/account" : "/login"} className={iconBtn} aria-label="Favorites">
+            <Link href="/favorites" className={iconBtn} aria-label="Favorites" title="Favorites">
               <Heart className="size-5" />
+              <FavoritesCount />
             </Link>
           )}
           {icons.cart && (

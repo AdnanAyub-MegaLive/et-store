@@ -46,6 +46,7 @@ export async function toggleFavorite(productId: string) {
   if (existing) await db.favorite.delete({ where: key });
   else await db.favorite.create({ data: { userId: user.id, productId: id } });
   revalidatePath("/account");
+  revalidatePath("/favorites");
   return { favorited: !existing };
 }
 
