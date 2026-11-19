@@ -59,57 +59,119 @@ export const homeContentSchema = z.object({
 export type HomeContent = z.infer<typeof homeContentSchema>;
 
 export const HOME_DEFAULTS: HomeContent = {
-  hero: {
-    badge: "THE VIRTUAL ITEMS STORE",
-    title: "Rides, frames and entrances that",
-    highlight: "stand out.",
-    subtitle: "Style your profile and rooms with rides, frames, badges, chat boxes and more. Make every entrance one to remember.",
-    primaryLabel: "Explore products",
-    primaryHref: "/shop",
-    secondaryLabel: "Browse categories",
-    secondaryHref: "#categories",
-    points: ["Instant delivery", "Works in every room", "Exclusive designs"],
-    image: "/products/nova-ui-kit.png",
-    statValue: 12000,
-    statSuffix: "+",
-    statLabel: "happy users",
-  },
-  clients: {
-    enabled: true,
-    items: ["Lumen", "Orbit", "Kinetic", "Vertex", "Halo", "Pulse", "Nimbus", "Zenith"].map((name) => ({ name, logo: `/clients/${name.toLowerCase()}.svg` })),
-  },
-  categories: { title: "Shop by category" },
-  trending: { title: "Trending this week" },
-  promo: {
-    enabled: true,
-    tag: "−25%",
-    title: "Build your next big thing for less",
-    text: "Save 25% on curated bundles this week.",
-    buttonLabel: "Shop bundles",
-    buttonHref: "/shop",
-  },
-  howItWorks: {
-    eyebrow: "HOW IT WORKS",
-    title: "From idea to download in minutes",
-    steps: [
-      { title: "Browse curated tools", text: "Every product is reviewed for quality, so you only see work worth buying." },
-      { title: "Check out securely", text: "Pay with card, Apple Pay or Google Pay through Stripe in a few seconds." },
-      { title: "Download instantly", text: "Files land in your library right away, with free lifetime updates." },
+  "hero": {
+    "badge": "THE VIRTUAL ITEMS STORE",
+    "title": "Rides, frames, badges and entrances that",
+    "highlight": "stand out.",
+    "subtitle": "Ride in style, frame your profile, dress up your avatar and decorate your room with BGs, seats, chat boxes and cards. Everything you need to shine in every room.",
+    "primaryLabel": "Shop all items",
+    "primaryHref": "/shop",
+    "secondaryLabel": "Browse categories",
+    "secondaryHref": "#categories",
+    "points": [
+      "Instant delivery",
+      "Works in every room",
+      "Exclusive designs"
     ],
+    "image": "/products/nova-ui-kit.png",
+    "statValue": 12000,
+    "statSuffix": "+",
+    "statLabel": "happy users"
   },
-  testimonials: {
-    enabled: true,
-    title: "Loved by independent makers",
-    items: [
-      { quote: "ET-Store has become my go-to place for polished assets that make every client project feel more considered.", name: "Alex Morgan", role: "Brand designer" },
-      { quote: "The quality is exceptional and the instant downloads keep my small team moving without slowing down.", name: "Jordan Reed", role: "Founder, Northstar" },
-      { quote: "I find something useful every time I visit. It feels like a carefully edited library, not another noisy marketplace.", name: "Sam Kim", role: "Creative consultant" },
-    ],
+  "clients": {
+    "enabled": true,
+    "items": [
+      {
+        "name": "Lumen",
+        "logo": "/clients/lumen.svg"
+      },
+      {
+        "name": "Orbit",
+        "logo": "/clients/orbit.svg"
+      },
+      {
+        "name": "Kinetic",
+        "logo": "/clients/kinetic.svg"
+      },
+      {
+        "name": "Vertex",
+        "logo": "/clients/vertex.svg"
+      },
+      {
+        "name": "Halo",
+        "logo": "/clients/halo.svg"
+      },
+      {
+        "name": "Pulse",
+        "logo": "/clients/pulse.svg"
+      },
+      {
+        "name": "Nimbus",
+        "logo": "/clients/nimbus.svg"
+      },
+      {
+        "name": "Zenith",
+        "logo": "/clients/zenith.svg"
+      }
+    ]
   },
-  newsletter: {
-    title: "Fresh assets, zero noise",
-    text: "A thoughtful digest of new digital products, practical resources, and marketplace news.",
+  "categories": {
+    "title": "Shop by category"
   },
+  "trending": {
+    "title": "Trending items this week"
+  },
+  "promo": {
+    "enabled": true,
+    "tag": "−25%",
+    "title": "Upgrade your whole look for less",
+    "text": "Save 25% on ride, frame and entrance bundles this week.",
+    "buttonLabel": "Shop bundles",
+    "buttonHref": "/shop"
+  },
+  "howItWorks": {
+    "eyebrow": "HOW IT WORKS",
+    "title": "From the store to your profile in minutes",
+    "steps": [
+      {
+        "title": "Pick your items",
+        "text": "Browse rides, frames, dress-ups, badges, room BGs and more. Animated and static styles for every taste."
+      },
+      {
+        "title": "Check out securely",
+        "text": "Pay with card, Apple Pay or Google Pay through Stripe in a few seconds."
+      },
+      {
+        "title": "Equip and show off",
+        "text": "Items land in your inventory right away. Equip them anytime and everyone in the room will see them."
+      }
+    ]
+  },
+  "testimonials": {
+    "enabled": true,
+    "title": "Loved by hosts and players",
+    "items": [
+      {
+        "quote": "My Dragon Entrance gets a reaction every single time I join a room. Worth every coin.",
+        "name": "Alex Morgan",
+        "role": "Top host"
+      },
+      {
+        "quote": "The frames and profile BGs look amazing and they showed up in my inventory instantly.",
+        "name": "Jordan Reed",
+        "role": "VIP member"
+      },
+      {
+        "quote": "I decorated my whole room with the Night City BG and Crystal Room Frame. My guests love it.",
+        "name": "Sam Kim",
+        "role": "Room owner"
+      }
+    ]
+  },
+  "newsletter": {
+    "title": "New drops, first",
+    "text": "Get notified about new rides, frames, entrances and limited-time bundles before anyone else."
+  }
 };
 
 /** Fill any missing section from the defaults (e.g. content saved before a new field existed). */
