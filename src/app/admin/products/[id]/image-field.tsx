@@ -10,12 +10,15 @@ export function ImageField({
   name = "image",
   label = "Featured image",
   onChange,
+  required = true,
 }: {
   initial: string;
   name?: string;
   label?: string;
   /** Called with the new path whenever it changes (upload or typing). */
   onChange?: (url: string) => void;
+  /** Optional fields can be left empty. */
+  required?: boolean;
 }) {
   const [url, setUrlState] = useState(initial);
   const setUrl = (v: string) => {
@@ -58,7 +61,7 @@ export function ImageField({
             {pending ? "Uploading…" : "Upload image"}
             <input ref={fileRef} type="file" accept=".svg,.png,.jpg,.jpeg,.webp,image/svg+xml,image/png,image/jpeg,image/webp" onChange={onPick} className="sr-only" />
           </label>
-          <input name={name} value={url} onChange={(e) => setUrl(e.target.value)} required maxLength={500} placeholder="/uploads/... or https://..." aria-label="Image path or URL" className="input" />
+          <input name={name} value={url} onChange={(e) => setUrl(e.target.value)} required={required} maxLength={500} placeholder="/uploads/... or https://..." aria-label="Image path or URL" className="input" />
           <p className="text-xs text-muted">SVG, PNG, JPG or WebP, up to 2 MB. Or paste an image path or https link.</p>
           {error && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{error}</p>}
         </div>

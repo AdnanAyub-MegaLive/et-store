@@ -7,27 +7,32 @@ import { iconFor } from "./icons";
 
 export type NavCategory = { slug: string; name: string; icon: string };
 
-const links = [
-  { href: "/shop", label: "Browse" },
-  { href: "/#categories", label: "Categories" },
-  { href: "/shop?sort=featured", label: "Bundles" },
-  { href: "/#resources", label: "Resources" },
-];
+export type NavLink = { label: string; href: string; dropdown: boolean };
+
+/** Is this menu link for the page we're on? (Hash links like /#categories are never "active".) */
+function isActive(href: string, path: string) {
+  // Hash, query (e.g. /shop?sort=…) and outside links never show as active, so only one item is highlighted.
+  if (href.includes("#") || href.includes("?") || href.startsWith("http")) return false;
+  const target = href.split("?")[0] || "/";
+  if (target === "/") return path === "/";
+  if (target === "/shop") return path.startsWith("/shop") || path.startsWith("/products");
+  return path === target || path.startsWith(`${target}/`);
+}
 
 const underline = (active: boolean) =>
   `absolute inset-x-0 -bottom-px h-0.5 origin-left rounded-full bg-brand transition-transform duration-300 ${active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"}`;
 
-export function NavLinks({ categories }: { categories: NavCategory[] }) {
+export function NavLinks({ links, categories }: { links: NavLink[]; categories: NavCategory[] }) {
   const path = usePathname();
   return (
     <div className="hidden items-center gap-6 lg:flex">
       {links.map((l, i) => {
-        const active = i === 0 ? path === "/" || path.startsWith("/shop") || path.startsWith("/products") : false;
+        const active = isActive(l.href, path);
         const linkClass = `group relative flex items-center gap-1 py-5 text-sm font-medium transition-colors ${active ? "text-brand" : "text-muted hover:text-ink"}`;
 
-        if (l.label === "Categories") {
+        if (l.dropdown && categories.length) {
           return (
-            <div key={l.label} className="group/menu relative">
+            <div key={i} className="group/menu relative">
               <Link href={l.href} className={`${linkClass} group-hover/menu:text-ink`} aria-haspopup="true">
                 {l.label}
                 <ChevronDown className="size-3.5 transition-transform duration-300 group-hover/menu:rotate-180" aria-hidden />
@@ -60,7 +65,7 @@ export function NavLinks({ categories }: { categories: NavCategory[] }) {
         }
 
         return (
-          <Link key={l.label} href={l.href} className={linkClass}>
+          <Link key={i} href={l.href} className={linkClass}>
             {l.label}
             <span aria-hidden className={underline(active)} />
           </Link>
