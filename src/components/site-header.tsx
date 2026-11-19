@@ -92,7 +92,7 @@ export async function SiteHeader() {
               const Icon = iconFor(c.icon);
               return (
                 <li key={c.slug} className="shrink-0">
-                  <Link href={`/shop?category=${c.slug}`} className="group flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-muted transition hover:bg-brand-soft hover:text-brand">
+                  <Link href={`/shop?category=${c.slug}`} className="group flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold text-muted transition hover:bg-brand-soft hover:text-brand">
                     <Icon className="size-4 text-violet-500 transition group-hover:text-pink-500" />
                     {c.name}
                   </Link>
