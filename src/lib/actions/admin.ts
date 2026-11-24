@@ -9,7 +9,7 @@ import type { FormState } from "./auth";
 import { randomBytes } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { MAX_UPLOAD_BYTES, UPLOAD_DIR, detectType, unsafeSvgReason } from "@/lib/uploads";
+import { MAX_UPLOAD_BYTES, UPLOAD_DIR, detectType, unsafeSvgReason, UPLOAD_TYPES } from "@/lib/uploads";
 import type { Prisma } from "@prisma/client";
 import { homeContentSchema } from "@/lib/home-content-schema";
 import { HEADER_KEY, HOME_KEY } from "@/lib/home-content";
@@ -148,6 +148,12 @@ export async function uploadProductImage(_: UploadState, form: FormData): Promis
   }
 
   const name = `${randomBytes(16).toString("hex")}.${ext}`;
+  // On Vercel the disk is read-only, so uploads go to Vercel Blob when its token is set.
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const { put } = await import("@vercel/blob");
+    const blob = await put(`uploads/${name}`, buf, { access: "public", contentType: UPLOAD_TYPES[ext], addRandomSuffix: false });
+    return { url: blob.url };
+  }
   await mkdir(UPLOAD_DIR, { recursive: true });
   await writeFile(path.join(UPLOAD_DIR, name), buf);
   return { url: `/uploads/${name}` };

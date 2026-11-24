@@ -32,8 +32,17 @@ export async function Logo() {
   return (
     <Link href="/" className="group flex shrink-0 items-center gap-2" aria-label={`${name} home`}>
       {logo.image ? (
-        // eslint-disable-next-line @next/next/no-img-element -- admin-uploaded logo of unknown size/type (SVG allowed)
-        <img src={logo.image} alt={name} className="h-9 w-auto max-w-[180px] object-contain transition duration-300 group-hover:scale-105" />
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- admin-uploaded logo of unknown size/type (SVG allowed) */}
+          <img src={logo.image} alt={logo.text || logo.highlight ? "" : name} className="h-[72px] w-[92px] rounded-md bg-[#010413] object-cover" />
+          {/* Optional name next to the logo image, as real text so it stays readable. */}
+          {(logo.text || logo.highlight) && (
+            <span className="hidden flex-col leading-tight sm:flex">
+              {logo.text && <span className="text-[15px] font-bold tracking-[0.22em] text-amber-500">{logo.text}</span>}
+              {logo.highlight && <span className="text-[11px] font-semibold tracking-[0.32em] text-blue-600 dark:text-blue-400">{logo.highlight}</span>}
+            </span>
+          )}
+        </>
       ) : (
         <>
           {logo.mark && (
@@ -61,7 +70,7 @@ export async function SiteHeader() {
   const accountHref = user ? (user.role === "ADMIN" ? "/admin" : "/account") : "/login";
   return (
     <HeaderShell>
-      <nav className="mx-auto flex h-16 max-w-[1280px] items-center gap-4 px-4 sm:px-6 lg:gap-8" aria-label="Primary navigation">
+      <nav className="mx-auto flex h-20 max-w-[1280px] items-center gap-4 px-4 sm:px-6 lg:gap-8" aria-label="Primary navigation">
         <Logo />
         {/* Categories now live in the sub-header below, so dropdown links are hidden here. */}
         <NavLinks links={header.links.filter((l) => !l.dropdown)} categories={[]} />

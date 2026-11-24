@@ -20,7 +20,11 @@ const nextConfig: NextConfig = {
   turbopack: {
     rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } },
   },
-  images: { formats: ["image/avif", "image/webp"] },
+  images: {
+    formats: ["image/avif", "image/webp"],
+    // Admin uploads stored in Vercel Blob.
+    remotePatterns: [{ protocol: "https", hostname: "*.public.blob.vercel-storage.com" }],
+  },
   experimental: { serverActions: { bodySizeLimit: "3mb" } },
   async headers() {
     return [
