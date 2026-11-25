@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { SavedToast } from "../saved-toast";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ChevronDown, ExternalLink, Plus, Trash2 } from "lucide-react";
 import type { HeaderContent } from "@/lib/header-content-schema";
@@ -45,6 +46,7 @@ export function HeaderEditor({ initial }: { initial: HeaderContent }) {
 
   return (
     <form action={action} onSubmit={() => setDirty(false)} className="flex flex-col gap-6">
+      <SavedToast state={state} />
       <input type="hidden" name="data" value={JSON.stringify(c)} />
 
       {/* Live preview */}

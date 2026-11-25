@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { SavedToast } from "../saved-toast";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ExternalLink, Plus, Trash2 } from "lucide-react";
 import type { HomeContent } from "@/lib/home-content-schema";
@@ -90,6 +91,7 @@ export function HomeEditor({ initial }: { initial: HomeContent }) {
 
   return (
     <form action={action} onSubmit={() => setDirty(false)} className="flex flex-col gap-6 pb-6">
+      <SavedToast state={state} />
       <input type="hidden" name="data" value={JSON.stringify(c)} />
 
       <Section title="Hero" hint="The big banner at the top of the home page.">

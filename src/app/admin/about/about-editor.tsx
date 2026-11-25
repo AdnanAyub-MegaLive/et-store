@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { SavedToast } from "../saved-toast";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ExternalLink, Plus, Trash2 } from "lucide-react";
 import { ABOUT_ICONS, STAT_SOURCES, type AboutContent } from "@/lib/about-content-schema";
@@ -89,6 +90,7 @@ export function AboutEditor({ initial }: { initial: AboutContent }) {
 
   return (
     <form action={action} onSubmit={() => setDirty(false)} className="flex flex-col gap-6 pb-6">
+      <SavedToast state={state} />
       <input type="hidden" name="data" value={JSON.stringify(c)} />
 
       <Section title="Top section" hint="Heading and intro at the top of the About page.">
