@@ -12,7 +12,8 @@ import path from "node:path";
 import { MAX_UPLOAD_BYTES, UPLOAD_DIR, detectType, unsafeSvgReason, UPLOAD_TYPES } from "@/lib/uploads";
 import type { Prisma } from "@prisma/client";
 import { homeContentSchema } from "@/lib/home-content-schema";
-import { HEADER_KEY, HOME_KEY } from "@/lib/home-content";
+import { ABOUT_KEY, HEADER_KEY, HOME_KEY } from "@/lib/home-content";
+import { aboutContentSchema } from "@/lib/about-content-schema";
 import { headerContentSchema } from "@/lib/header-content-schema";
 
 const imageUrl = z.string().trim().regex(/^(\/[\w\-./]+|https:\/\/[\w\-./%?=&]+)$/, "Image must be a /path or https URL").max(500);
@@ -323,4 +324,31 @@ export async function moveCategory(form: FormData) {
   [list[i], list[j]] = [list[j], list[i]];
   await db.$transaction(list.map((c, k) => db.category.update({ where: { id: c.id }, data: { position: k + 1 } })));
   revalidatePath("/", "layout");
+}
+
+/** Save the editable About page (admin → About page). */
+export async function saveAboutContent(_: ContentState, form: FormData): Promise<ContentState> {
+  await requireAdmin();
+  let raw: unknown;
+  try {
+    raw = JSON.parse(String(form.get("data") ?? ""));
+  } catch {
+    return { error: "Could not read the form. Please try again." };
+  }
+  const parsed = aboutContentSchema.safeParse(raw);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return { error: `${issue.path.join(" › ")}: ${issue.message}` };
+  }
+  const data = parsed.data as unknown as Prisma.InputJsonValue;
+  await db.siteContent.upsert({ where: { key: ABOUT_KEY }, create: { key: ABOUT_KEY, data }, update: { data } });
+  revalidatePath("/about");
+  return { ok: true };
+}
+
+/** Put the About page back to the built-in content. */
+export async function resetAboutContent() {
+  await requireAdmin();
+  await db.siteContent.deleteMany({ where: { key: ABOUT_KEY } });
+  revalidatePath("/about");
 }

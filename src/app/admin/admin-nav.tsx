@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House, LayoutDashboard, Mail, Package, PanelTop, ShoppingCart, Tags, Users } from "lucide-react";
+import { House, Info, LayoutDashboard, Mail, Package, PanelTop, ShoppingCart, Tags, Users } from "lucide-react";
 
 const items = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
@@ -13,6 +13,7 @@ const items = [
   { href: "/admin/messages", label: "Messages", icon: Mail },
   { href: "/admin/home", label: "Home page", icon: House },
   { href: "/admin/header", label: "Header", icon: PanelTop },
+  { href: "/admin/about", label: "About page", icon: Info },
 ];
 
 export function AdminNav({ compact = false }: { compact?: boolean }) {
