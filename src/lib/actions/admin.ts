@@ -12,8 +12,9 @@ import path from "node:path";
 import { MAX_UPLOAD_BYTES, UPLOAD_DIR, detectType, unsafeSvgReason, UPLOAD_TYPES } from "@/lib/uploads";
 import type { Prisma } from "@prisma/client";
 import { homeContentSchema } from "@/lib/home-content-schema";
-import { ABOUT_KEY, HEADER_KEY, HOME_KEY } from "@/lib/home-content";
+import { ABOUT_KEY, CONTACT_KEY, HEADER_KEY, HOME_KEY } from "@/lib/home-content";
 import { aboutContentSchema } from "@/lib/about-content-schema";
+import { contactContentSchema } from "@/lib/contact-content-schema";
 import { headerContentSchema } from "@/lib/header-content-schema";
 
 const imageUrl = z.string().trim().regex(/^(\/[\w\-./]+|https:\/\/[\w\-./%?=&]+)$/, "Image must be a /path or https URL").max(500);
@@ -351,4 +352,31 @@ export async function resetAboutContent() {
   await requireAdmin();
   await db.siteContent.deleteMany({ where: { key: ABOUT_KEY } });
   revalidatePath("/about");
+}
+
+/** Save the editable Contact page (admin → Contact page). */
+export async function saveContactContent(_: ContentState, form: FormData): Promise<ContentState> {
+  await requireAdmin();
+  let raw: unknown;
+  try {
+    raw = JSON.parse(String(form.get("data") ?? ""));
+  } catch {
+    return { error: "Could not read the form. Please try again." };
+  }
+  const parsed = contactContentSchema.safeParse(raw);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return { error: `${issue.path.join(" › ")}: ${issue.message}` };
+  }
+  const data = parsed.data as unknown as Prisma.InputJsonValue;
+  await db.siteContent.upsert({ where: { key: CONTACT_KEY }, create: { key: CONTACT_KEY, data }, update: { data } });
+  revalidatePath("/contact");
+  return { ok: true };
+}
+
+/** Put the Contact page back to the built-in content. */
+export async function resetContactContent() {
+  await requireAdmin();
+  await db.siteContent.deleteMany({ where: { key: CONTACT_KEY } });
+  revalidatePath("/contact");
 }

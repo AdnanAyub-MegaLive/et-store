@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { withDefaults, type HomeContent } from "@/lib/home-content-schema";
 import { headerWithDefaults, type HeaderContent } from "@/lib/header-content-schema";
 import { aboutWithDefaults, type AboutContent } from "@/lib/about-content-schema";
+import { contactWithDefaults, type ContactContent } from "@/lib/contact-content-schema";
 
 export const HOME_KEY = "home";
 
@@ -27,4 +28,12 @@ export const ABOUT_KEY = "about";
 export const getAboutContent = cache(async (): Promise<AboutContent> => {
   const row = await db.siteContent.findUnique({ where: { key: ABOUT_KEY } });
   return aboutWithDefaults(row?.data);
+});
+
+export const CONTACT_KEY = "contact";
+
+/** Contact page content from the database, falling back to the built-in defaults. */
+export const getContactContent = cache(async (): Promise<ContactContent> => {
+  const row = await db.siteContent.findUnique({ where: { key: CONTACT_KEY } });
+  return contactWithDefaults(row?.data);
 });

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { rateLimit } from "@/lib/rate-limit";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { getContactContent } from "@/lib/home-content";
 import { TAX_RATE } from "@/lib/format";
 import { stripe } from "@/lib/stripe";
 import type { FormState } from "./auth";
@@ -18,22 +19,22 @@ export async function subscribe(_: FormState, form: FormData): Promise<FormState
   return { ok: "You're subscribed!" };
 }
 
-const CONTACT_TOPICS = ["General question", "Order or download", "Refund request", "Licensing", "Become a creator", "Other"] as const;
-
 export async function sendContactMessage(_: FormState, form: FormData): Promise<FormState> {
   const parsed = z
     .object({
       name: z.string().trim().min(2, "Please enter your name").max(80),
       email: z.string().trim().toLowerCase().email("Enter a valid email").max(254),
-      topic: z.enum(CONTACT_TOPICS),
+      topic: z.string().trim().min(1).max(60),
       message: z.string().trim().min(10, "Message should be at least 10 characters").max(4000),
     })
     .safeParse({ name: form.get("name"), email: form.get("email"), topic: form.get("topic"), message: form.get("message") });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const content = await getContactContent();
+  if (!content.form.topics.includes(parsed.data.topic)) return { error: "Please choose a topic from the list." };
   if (!(await verifyTurnstile(form.get("cf-turnstile-response")))) return { error: "Please confirm you are not a robot." };
   await db.contactMessage.create({ data: parsed.data });
   revalidatePath("/admin", "layout");
-  return { ok: "Thanks! Your message is on its way. We usually reply within 1 business day." };
+  return { ok: content.form.successText };
 }
 
 export async function toggleFavorite(productId: string) {

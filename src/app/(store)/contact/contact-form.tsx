@@ -6,9 +6,7 @@ import { CheckCircle2, Send } from "lucide-react";
 import { sendContactMessage } from "@/lib/actions/store";
 import { Turnstile } from "@/components/turnstile";
 
-const TOPICS = ["General question", "Order or download", "Refund request", "Licensing", "Become a creator", "Other"];
-
-export function ContactForm({ initialTopic, siteKey }: { initialTopic?: string; siteKey?: string }) {
+export function ContactForm({ initialTopic, siteKey, title, topics }: { initialTopic?: string; siteKey?: string; title: string; topics: string[] }) {
   const [state, action, pending] = useActionState(sendContactMessage, undefined);
   const [robotError, setRobotError] = useState(false);
 
@@ -37,7 +35,7 @@ export function ContactForm({ initialTopic, siteKey }: { initialTopic?: string; 
           }}
           className="grid gap-4 sm:grid-cols-2"
         >
-          <h2 className="text-xl font-semibold sm:col-span-2">Send a message</h2>
+          <h2 className="text-xl font-semibold sm:col-span-2">{title}</h2>
           {state?.error && (
             <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/15 dark:text-red-300 sm:col-span-2">{state.error}</p>
           )}
@@ -51,8 +49,8 @@ export function ContactForm({ initialTopic, siteKey }: { initialTopic?: string; 
           </label>
           <label className="block sm:col-span-2">
             <span className="label">Topic</span>
-            <select name="topic" defaultValue={TOPICS.includes(initialTopic ?? "") ? initialTopic : TOPICS[0]} className="input h-11">
-              {TOPICS.map((t) => <option key={t}>{t}</option>)}
+            <select name="topic" defaultValue={topics.includes(initialTopic ?? "") ? initialTopic : topics[0]} className="input h-11">
+              {topics.map((t) => <option key={t}>{t}</option>)}
             </select>
           </label>
           <label className="block sm:col-span-2">
