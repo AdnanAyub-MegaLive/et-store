@@ -4,10 +4,11 @@ import { useActionState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, Send } from "lucide-react";
 import { sendContactMessage } from "@/lib/actions/store";
+import { Turnstile } from "@/components/turnstile";
 
 const TOPICS = ["General question", "Order or download", "Refund request", "Licensing", "Become a creator", "Other"];
 
-export function ContactForm({ initialTopic }: { initialTopic?: string }) {
+export function ContactForm({ initialTopic, siteKey }: { initialTopic?: string; siteKey?: string }) {
   const [state, action, pending] = useActionState(sendContactMessage, undefined);
 
   return (
@@ -45,6 +46,11 @@ export function ContactForm({ initialTopic }: { initialTopic?: string }) {
             <span className="label">Message</span>
             <textarea name="message" required minLength={10} maxLength={4000} rows={6} placeholder="How can we help?" className="input" />
           </label>
+          {siteKey && (
+            <div className="sm:col-span-2">
+              <Turnstile siteKey={siteKey} resetKey={state} />
+            </div>
+          )}
           <button disabled={pending} className="btn-primary sm:col-span-2">
             <Send className="size-4" />
             {pending ? "Sending…" : "Send message"}

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { rateLimit } from "@/lib/rate-limit";
+import { verifyTurnstile } from "@/lib/turnstile";
 import { TAX_RATE } from "@/lib/format";
 import { stripe } from "@/lib/stripe";
 import type { FormState } from "./auth";
@@ -29,6 +30,7 @@ export async function sendContactMessage(_: FormState, form: FormData): Promise<
     })
     .safeParse({ name: form.get("name"), email: form.get("email"), topic: form.get("topic"), message: form.get("message") });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!(await verifyTurnstile(form.get("cf-turnstile-response")))) return { error: "Please confirm you are not a robot." };
   await db.contactMessage.create({ data: parsed.data });
   revalidatePath("/admin", "layout");
   return { ok: "Thanks! Your message is on its way. We usually reply within 1 business day." };

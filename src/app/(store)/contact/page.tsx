@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { turnstileSiteKey } from "@/lib/turnstile";
 import Link from "next/link";
 import { Clock, LifeBuoy, Mail } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
@@ -19,7 +20,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
       <PageHero crumb="Contact" eyebrow="GET IN TOUCH" title="We'd love to" highlight="hear from you." intro="Questions about an order, a licence, or selling on ET-Store? Send us a message." />
       <div className="grid gap-8 pb-16 lg:grid-cols-[1fr_360px]">
         <div data-slide="left" className="card border-t-4 border-t-fuchsia-400 p-6 sm:p-8">
-          <ContactForm initialTopic={topic} />
+          <ContactForm initialTopic={topic} siteKey={turnstileSiteKey()} />
         </div>
         <aside data-stagger className="flex flex-col gap-4">
           {cards.map((c) => (
