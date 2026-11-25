@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Loader2 } from "lucide-react";
 
 type TurnstileApi = {
   render: (el: HTMLElement, opts: Record<string, unknown>) => string;
+  execute: (id: string) => void;
   reset: (id: string) => void;
   remove: (id: string) => void;
 };
@@ -30,13 +32,17 @@ function loadScript(): Promise<TurnstileApi> {
   });
 }
 
+type Status = "idle" | "checking" | "done" | "error";
+
 /**
- * "I'm not a robot" check. Adds a hidden `cf-turnstile-response` field to the surrounding form.
- * Change `resetKey` to get a fresh check (a token can only be used once).
+ * "I'm not a robot" checkbox. Nothing is checked until the visitor clicks it; then Cloudflare Turnstile runs
+ * (and only shows a challenge if it is unsure). Adds a hidden `cf-turnstile-response` field to the form.
+ * Change `resetKey` to start over (a token can only be used once).
  */
 export function Turnstile({ siteKey, resetKey }: { siteKey: string; resetKey?: unknown }) {
   const box = useRef<HTMLDivElement>(null);
   const widget = useRef<string | null>(null);
+  const [status, setStatus] = useState<Status>("idle");
 
   useEffect(() => {
     let cancelled = false;
@@ -44,9 +50,17 @@ export function Turnstile({ siteKey, resetKey }: { siteKey: string; resetKey?: u
       .then((api) => {
         if (cancelled || !box.current || widget.current) return;
         const dark = document.documentElement.classList.contains("dark");
-        widget.current = api.render(box.current, { sitekey: siteKey, theme: dark ? "dark" : "light" });
+        widget.current = api.render(box.current, {
+          sitekey: siteKey,
+          theme: dark ? "dark" : "light",
+          execution: "execute", // wait for the click
+          appearance: "interaction-only", // only visible if a challenge is needed
+          callback: () => setStatus("done"),
+          "expired-callback": () => setStatus("idle"),
+          "error-callback": () => setStatus("error"),
+        });
       })
-      .catch(() => {});
+      .catch(() => setStatus("error"));
     return () => {
       cancelled = true;
       if (widget.current) window.turnstile?.remove(widget.current);
@@ -54,9 +68,41 @@ export function Turnstile({ siteKey, resetKey }: { siteKey: string; resetKey?: u
     };
   }, [siteKey]);
 
+  // New form result (e.g. an error): untick and start over.
+  const [seenKey, setSeenKey] = useState(resetKey);
+  if (seenKey !== resetKey) {
+    setSeenKey(resetKey);
+    setStatus("idle");
+  }
   useEffect(() => {
     if (widget.current) window.turnstile?.reset(widget.current);
   }, [resetKey]);
 
-  return <div ref={box} className="min-h-[65px]" />;
+  const start = () => {
+    if (status === "checking" || status === "done" || !widget.current) return;
+    setStatus("checking");
+    window.turnstile?.reset(widget.current);
+    window.turnstile?.execute(widget.current);
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={status === "done"}
+        onClick={start}
+        className="flex w-fit items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm font-medium transition hover:border-brand/50"
+      >
+        <span
+          className={`grid size-6 place-items-center rounded-md border-2 transition ${status === "done" ? "border-emerald-500 bg-emerald-500 text-white" : "border-line bg-panel"}`}
+        >
+          {status === "checking" ? <Loader2 className="size-4 animate-spin text-brand" /> : status === "done" ? <Check className="size-4" /> : null}
+        </span>
+        I&apos;m not a robot
+      </button>
+      {status === "error" && <p className="text-xs text-red-600 dark:text-red-300">Check failed. Click the box to try again.</p>}
+      <div ref={box} />
+    </div>
+  );
 }

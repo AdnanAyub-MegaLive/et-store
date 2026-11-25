@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, Send } from "lucide-react";
 import { sendContactMessage } from "@/lib/actions/store";
@@ -10,6 +10,7 @@ const TOPICS = ["General question", "Order or download", "Refund request", "Lice
 
 export function ContactForm({ initialTopic, siteKey }: { initialTopic?: string; siteKey?: string }) {
   const [state, action, pending] = useActionState(sendContactMessage, undefined);
+  const [robotError, setRobotError] = useState(false);
 
   return (
     <AnimatePresence initial={false}>
@@ -23,7 +24,19 @@ export function ContactForm({ initialTopic, siteKey }: { initialTopic?: string; 
         </motion.div>
       ) : (
         // No exit animation: the success message must never wait on an animation to appear.
-        <form key="form" action={action} className="grid gap-4 sm:grid-cols-2">
+        <form
+          key="form"
+          action={action}
+          onSubmit={(e) => {
+            // Stop here (keeping what was typed) until the "I'm not a robot" box is ticked.
+            const token = new FormData(e.currentTarget).get("cf-turnstile-response");
+            if (siteKey && !token) {
+              e.preventDefault();
+              setRobotError(true);
+            } else setRobotError(false);
+          }}
+          className="grid gap-4 sm:grid-cols-2"
+        >
           <h2 className="text-xl font-semibold sm:col-span-2">Send a message</h2>
           {state?.error && (
             <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/15 dark:text-red-300 sm:col-span-2">{state.error}</p>
@@ -49,6 +62,7 @@ export function ContactForm({ initialTopic, siteKey }: { initialTopic?: string; 
           {siteKey && (
             <div className="sm:col-span-2">
               <Turnstile siteKey={siteKey} resetKey={state} />
+              {robotError && <p role="alert" className="mt-1 text-sm text-red-600 dark:text-red-300">Please tick &quot;I&apos;m not a robot&quot; first.</p>}
             </div>
           )}
           <button disabled={pending} className="btn-primary sm:col-span-2">
