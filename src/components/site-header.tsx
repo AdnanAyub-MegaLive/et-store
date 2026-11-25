@@ -34,14 +34,7 @@ export async function Logo() {
       {logo.image ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element -- admin-uploaded logo of unknown size/type (SVG allowed) */}
-          <img src={logo.image} alt={logo.text || logo.highlight ? "" : name} className="h-[72px] w-[92px] rounded-md bg-[#010413] object-cover" />
-          {/* Optional name next to the logo image, as real text so it stays readable. */}
-          {(logo.text || logo.highlight) && (
-            <span className="hidden flex-col leading-tight sm:flex">
-              {logo.text && <span className="text-[15px] font-bold tracking-[0.22em] text-amber-500">{logo.text}</span>}
-              {logo.highlight && <span className="text-[11px] font-semibold tracking-[0.32em] text-blue-600 dark:text-blue-400">{logo.highlight}</span>}
-            </span>
-          )}
+          <img src={logo.image} alt={name} className="h-[72px] w-[92px] rounded-md bg-[#010413] object-cover" />
         </>
       ) : (
         <>

@@ -20,9 +20,6 @@ export async function subscribe(_: FormState, form: FormData): Promise<FormState
 const CONTACT_TOPICS = ["General question", "Order or download", "Refund request", "Licensing", "Become a creator", "Other"] as const;
 
 export async function sendContactMessage(_: FormState, form: FormData): Promise<FormState> {
-  // Honeypot: real visitors never see or fill this field.
-  if (form.get("company")) return { ok: "Thanks! We'll get back to you soon." };
-  if (!(await rateLimit("contact", 5, 60 * 60_000))) return { error: "Too many messages. Please try again later." };
   const parsed = z
     .object({
       name: z.string().trim().min(2, "Please enter your name").max(80),

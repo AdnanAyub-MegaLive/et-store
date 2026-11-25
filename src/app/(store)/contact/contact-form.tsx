@@ -45,8 +45,6 @@ export function ContactForm({ initialTopic }: { initialTopic?: string }) {
             <span className="label">Message</span>
             <textarea name="message" required minLength={10} maxLength={4000} rows={6} placeholder="How can we help?" className="input" />
           </label>
-          {/* Honeypot for bots: hidden from people and screen readers. */}
-          <input name="company" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] size-px opacity-0" />
           <button disabled={pending} className="btn-primary sm:col-span-2">
             <Send className="size-4" />
             {pending ? "Sending…" : "Send message"}
