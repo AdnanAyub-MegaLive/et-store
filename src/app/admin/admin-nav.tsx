@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House, Info, LayoutDashboard, Mail, MessageSquareText, Package, PanelTop, ShoppingCart, Tags, Users } from "lucide-react";
+import { Gem, House, Info, LayoutDashboard, Mail, MessageSquareText, Package, PanelTop, ShoppingCart, Tags, Users } from "lucide-react";
 
 const items = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/mega", label: "Mega catalog", icon: Gem },
   { href: "/admin/categories", label: "Categories", icon: Tags },
   { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/messages", label: "Messages", icon: Mail },
