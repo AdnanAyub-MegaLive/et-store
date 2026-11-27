@@ -56,8 +56,8 @@ const products = [
 ] as const;
 
 async function main() {
-  const url = process.env.DATABASE_URL;
-  if (!url?.startsWith("mongodb")) throw new Error("Set DATABASE_URL to your MongoDB connection string in .env");
+  const url = [process.env.MONGODB_URI, process.env.DATABASE_URL].find((u) => u?.startsWith("mongodb"));
+  if (!url) throw new Error("Set MONGODB_URI (or DATABASE_URL) to your MongoDB connection string in .env");
   const client = await new MongoClient(url).connect();
   const db = client.db(process.env.MONGODB_DB || undefined);
   const C = {

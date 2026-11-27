@@ -117,9 +117,14 @@ export const fromDocs = <T extends { id: string }>(ds: Doc<T>[]): T[] => ds.map(
 
 const g = globalThis as unknown as { _mongo?: Promise<MongoClient>; _mongoIndexes?: Promise<void> };
 
+/** MONGODB_URI wins; DATABASE_URL is used only if it is a MongoDB string (a Postgres integration may also set it). */
+export function mongoUrl(): string | undefined {
+  return [process.env.MONGODB_URI, process.env.DATABASE_URL].find((u) => u?.startsWith("mongodb"));
+}
+
 function client(): Promise<MongoClient> {
-  const url = process.env.DATABASE_URL;
-  if (!url || !url.startsWith("mongodb")) throw new Error("DATABASE_URL must be a mongodb:// or mongodb+srv:// connection string.");
+  const url = mongoUrl();
+  if (!url) throw new Error("Set MONGODB_URI (or DATABASE_URL) to a mongodb:// or mongodb+srv:// connection string.");
   g._mongo ??= new MongoClient(url, { maxPoolSize: 10 }).connect().catch((e) => {
     g._mongo = undefined;
     throw e;
