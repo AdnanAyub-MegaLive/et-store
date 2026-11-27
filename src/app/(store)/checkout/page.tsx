@@ -95,7 +95,7 @@ function Checkout() {
           <h2 className="mb-4 text-base font-semibold">Order summary</h2>
           {rows.map((r) => (
             <div key={r.id} className="flex items-center gap-3 py-2">
-              <div className="relative size-10 overflow-hidden rounded-lg"><Image src={r.image} alt="" fill sizes="40px" className="object-cover" /></div>
+              <div className="relative size-10 overflow-hidden rounded-lg"><Image src={r.image} alt="" fill sizes="40px" className="object-contain" /></div>
               <span className="flex-1">{r.name}{r.qty > 1 && ` ×${r.qty}`}</span>
               <span>{money(r.priceCents * r.qty, 0)}</span>
             </div>

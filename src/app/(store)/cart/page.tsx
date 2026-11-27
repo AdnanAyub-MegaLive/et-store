@@ -41,7 +41,7 @@ export default function CartPage() {
                 className="flex items-center gap-4 overflow-hidden border-b border-line py-6"
               >
                 <div className="relative size-[74px] shrink-0 overflow-hidden rounded-xl">
-                  <Image src={r.image} alt={r.name} fill sizes="74px" className="object-cover" />
+                  <Image src={r.image} alt={r.name} fill sizes="74px" className="object-contain" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <Link href={`/products/${r.slug}`} className="font-medium">{r.name}</Link>

@@ -71,7 +71,7 @@ export default async function AccountPage() {
           {items.length === 0 && <p className="py-8 text-center text-muted">No purchases yet. <Link href="/shop" className="text-brand">Find something great</Link></p>}
           {items.map((i) => (
             <div key={i.id} className="flex items-center gap-4 border-b border-line py-4 last:border-0">
-              <div className="relative size-12 overflow-hidden rounded-lg"><Image src={i.product.image} alt="" fill sizes="48px" className="object-cover" /></div>
+              <div className="relative size-12 overflow-hidden rounded-lg"><Image src={i.product.image} alt="" fill sizes="48px" className="object-contain" /></div>
               <div className="flex-1">
                 <Link href={`/products/${i.product.slug}`} className="font-medium">{i.product.name}</Link>
                 <p className="text-sm text-muted">{shortDate(i.order.createdAt)} · {i.order.status === "PAID" ? "Ready to download" : i.order.status.toLowerCase()}</p>

@@ -50,7 +50,7 @@ export function GalleryField({ initial }: { initial: string[] }) {
         {images.map((src, i) => (
           <div key={`${src}-${i}`} className="group relative size-24 overflow-hidden rounded-xl border border-line bg-surface">
             {/* eslint-disable-next-line @next/next/no-img-element -- admin preview of uploaded files */}
-            <img src={src} alt={`Gallery image ${i + 1}`} className="size-full object-cover" />
+            <img src={src} alt={`Gallery image ${i + 1}`} className="size-full object-contain" />
             <button type="button" onClick={() => setImages((prev) => prev.filter((_, k) => k !== i))} aria-label={`Remove image ${i + 1}`} className="absolute right-1 top-1 grid size-6 place-items-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100 focus:opacity-100">
               <X className="size-3.5" />
             </button>

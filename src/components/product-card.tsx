@@ -40,7 +40,7 @@ export function ProductCard({ p, showCount = false, priority = false }: { p: Car
   return (
     <article className="group card relative flex h-full flex-col overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition duration-300 ease-out hover:-translate-y-1.5 hover:border-brand/30 hover:shadow-[0_22px_40px_-20px_rgba(103,48,204,0.45)]">
       <div className="relative h-56 overflow-hidden bg-surface">
-        <Image src={p.image} alt={p.name} fill sizes="(max-width:768px) 100vw, 25vw" className="object-cover transition duration-700 ease-out group-hover:scale-[1.07]" priority={priority} />
+        <Image src={p.image} alt={p.name} fill sizes="(max-width:768px) 100vw, 25vw" className="object-contain p-2 transition duration-700 ease-out group-hover:scale-[1.07]" priority={priority} />
         <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition duration-300 group-hover:opacity-100" />
         {p.badge && <span className={`absolute left-3 top-3 rounded-[9px] bg-gradient-to-r px-2 py-1 text-xs font-semibold text-white shadow-md ${badgeColor(p.badge)}`}>{p.badge}</span>}
         <span aria-hidden className="absolute bottom-3 left-3 translate-y-3 rounded-lg bg-panel/95 px-3 py-1.5 text-xs font-medium text-ink opacity-0 shadow transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">

@@ -120,7 +120,7 @@ export default async function ProductPage({ params, searchParams }: P & { search
         <div data-stagger className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {related.map((r) => (
             <Link key={r.id} href={`/products/${r.slug}`} className="group card overflow-hidden transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_36px_-20px_rgba(103,48,204,0.45)]">
-              <div className="relative h-36 overflow-hidden"><Image src={r.image} alt={r.name} fill sizes="25vw" className="object-cover transition duration-700 group-hover:scale-105" /></div>
+              <div className="relative h-36 overflow-hidden"><Image src={r.image} alt={r.name} fill sizes="25vw" className="object-contain p-2 transition duration-700 group-hover:scale-105" /></div>
               <div className="p-4"><p className="font-medium transition-colors group-hover:text-brand">{r.name}</p><p className="text-sm text-muted">{money(r.priceCents, 0)}</p></div>
             </Link>
           ))}

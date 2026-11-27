@@ -49,7 +49,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               <tr key={p.id} className="border-b border-line last:border-0">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="relative size-10 overflow-hidden rounded-lg bg-surface"><Image src={p.image} alt="" fill sizes="40px" className="object-cover" /></div>
+                    <div className="relative size-10 overflow-hidden rounded-lg bg-surface"><Image src={p.image} alt="" fill sizes="40px" className="object-contain" /></div>
                     <Link href={`/admin/products/${p.id}`} className="font-medium hover:text-brand">{p.name}</Link>
                   </div>
                 </td>

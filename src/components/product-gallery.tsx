@@ -54,7 +54,7 @@ export function ProductGallery({ name, images }: { name: string; images: string[
         <div className="flex h-full transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]" style={{ transform: `translateX(-${active * 100}%)` }}>
           {images.map((src, i) => (
             <div key={`${src}-${i}`} className="relative h-full w-full shrink-0" aria-hidden={i !== active}>
-              <Image src={src} alt={i === 0 ? name : `${name}, image ${i + 1}`} fill priority={i === 0} sizes="(max-width:1024px) 100vw, 50vw" className="object-cover" />
+              <Image src={src} alt={i === 0 ? name : `${name}, image ${i + 1}`} fill priority={i === 0} sizes="(max-width:1024px) 100vw, 50vw" className="object-contain" />
             </div>
           ))}
         </div>
@@ -87,7 +87,7 @@ export function ProductGallery({ name, images }: { name: string; images: string[
               aria-current={i === active}
               className={`relative aspect-square w-20 shrink-0 overflow-hidden rounded-xl border-2 transition hover:-translate-y-0.5 hover:border-brand sm:w-24 ${i === active ? "border-brand" : "border-line opacity-75 hover:opacity-100"}`}
             >
-              <Image src={src} alt="" fill sizes="96px" className="object-cover" />
+              <Image src={src} alt="" fill sizes="96px" className="object-contain" />
             </button>
           ))}
         </div>
