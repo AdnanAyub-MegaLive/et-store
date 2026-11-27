@@ -19,9 +19,9 @@ const imageUrl = z.string().trim().regex(/^(\/[\w\-./]+|https:\/\/[\w\-./%?=&]+)
 
 const productSchema = z.object({
   name: z.string().trim().min(2).max(120),
-  slug: z.string().trim().toLowerCase().regex(/^[a-z0-9-]+$/, "Slug: lowercase letters, numbers, dashes").max(120),
+  slug: z.string().trim().toLowerCase().regex(/^[a-z0-9-]*$/, "Slug: lowercase letters, numbers, dashes").max(120).optional(),
   tagline: z.string().trim().min(2).max(200),
-  description: z.string().trim().min(2).max(5000),
+  description: z.string().trim().max(5000).optional(),
   price: z.coerce.number().min(0).max(100000),
   compare: z.union([z.literal(""), z.coerce.number().min(0).max(100000)]).optional(),
   image: imageUrl,
@@ -57,12 +57,17 @@ function parseProduct(form: FormData) {
   });
 }
 
+/** Name → url slug (used when the slug is left empty). */
+function productSlug(s: string) {
+  return s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 120) || "item-" + randomBytes(3).toString("hex");
+}
+
 function toData(d: z.infer<typeof productSchema>) {
   return {
     name: d.name,
-    slug: d.slug,
+    slug: d.slug || productSlug(d.name),
     tagline: d.tagline,
-    description: d.description,
+    description: d.description ?? "",
     priceCents: Math.round(d.price * 100),
     compareCents: d.compare === "" || d.compare === undefined ? null : Math.round(d.compare * 100),
     image: d.image,
@@ -91,7 +96,12 @@ export async function saveProduct(_: FormState, form: FormData): Promise<FormSta
   try {
     const now = new Date();
     if (typeof id === "string" && id) await products.updateOne({ _id: id }, { $set: { ...toData(parsed.data), updatedAt: now } });
-    else await products.insertOne({ _id: newId(), ...PRODUCT_DEFAULTS, format: "", ...toData(parsed.data), createdAt: now, updatedAt: now });
+    else {
+      const data = toData(parsed.data);
+      // Two products with the same name: give the new one a unique slug (name-2, name-3, …).
+      for (let n = 2; await products.findOne({ slug: data.slug }, { projection: { _id: 1 } }); n++) data.slug = `${toData(parsed.data).slug.slice(0, 115)}-${n}`;
+      await products.insertOne({ _id: newId(), ...PRODUCT_DEFAULTS, format: "", ...data, createdAt: now, updatedAt: now });
+    }
   } catch (e) {
     if (isDuplicateKey(e)) return { error: "Could not save. Is the slug already used?" };
     throw e;
