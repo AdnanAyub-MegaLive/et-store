@@ -50,7 +50,7 @@ export function ImageField({
         <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-xl border border-line bg-surface">
           {url ? (
             // eslint-disable-next-line @next/next/no-img-element -- live preview of any path or URL the admin types
-            <img src={url} alt="Product image preview" className="size-full object-cover" />
+            <img src={url} alt="Product image preview" className="size-full object-contain" />
           ) : (
             <span className="text-xs text-muted">No image</span>
           )}

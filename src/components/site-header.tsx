@@ -34,7 +34,7 @@ export async function Logo() {
       {logo.image ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element -- admin-uploaded logo of unknown size/type (SVG allowed) */}
-          <img src={logo.image} alt={name} className="h-[72px] w-[92px] rounded-md bg-[#010413] object-cover" />
+          <img src={logo.image} alt={name} className="h-11 w-auto max-w-[200px] object-contain sm:h-12 sm:max-w-[220px]" />
         </>
       ) : (
         <>

@@ -55,7 +55,7 @@ export function HeaderEditor({ initial }: { initial: HeaderContent }) {
         <div className="flex min-w-[560px] items-center gap-6 rounded-xl border border-line bg-surface px-4 py-3">
           {c.logo.image ? (
             // eslint-disable-next-line @next/next/no-img-element -- preview of the admin's logo
-            <img src={c.logo.image} alt="Logo preview" className="h-9 w-auto max-w-[180px] object-contain" />
+            <img src={c.logo.image} alt="Logo preview" className="h-11 w-auto max-w-[220px] object-contain" />
           ) : (
             <span className="flex items-center gap-2">
               {c.logo.mark && (
