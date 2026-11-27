@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
@@ -20,7 +20,7 @@ enum OrderStatus {
 }
 
 model User {
-  id           String     @id @default(cuid())
+  id           String     @id @default(cuid()) @map("_id")
   email        String     @unique
   name         String
   passwordHash String
@@ -33,7 +33,7 @@ model User {
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   tokenHash String   @unique
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -45,7 +45,7 @@ model PasswordResetToken {
 }
 
 model Category {
-  id       String    @id @default(cuid())
+  id       String    @id @default(cuid()) @map("_id")
   name     String    @unique
   slug     String    @unique
   icon     String    @default("frame")
@@ -54,7 +54,7 @@ model Category {
 }
 
 model Product {
-  id            String      @id @default(cuid())
+  id            String      @id @default(cuid()) @map("_id")
   slug          String      @unique
   name          String
   tagline       String
@@ -73,6 +73,9 @@ model Product {
   reviewCount   Int         @default(0)
   published     Boolean     @default(true)
   featured      Boolean     @default(false)
+  /// Mall item id when this product is synced from the Partner Store API.
+  partnerId     String?     @unique
+  partnerMotion Boolean     @default(false)
   categoryId    String
   category      Category    @relation(fields: [categoryId], references: [id])
   orderItems    OrderItem[]
@@ -85,8 +88,8 @@ model Product {
 }
 
 model Order {
-  id         String      @id @default(cuid())
-  number     Int         @unique @default(autoincrement())
+  id         String      @id @default(cuid()) @map("_id")
+  number     Int         @unique // from Counter "order" (MongoDB has no autoincrement)
   userId     String?
   user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   email      String
@@ -112,7 +115,7 @@ model Order {
 }
 
 model OrderItem {
-  id         String  @id @default(cuid())
+  id         String  @id @default(cuid()) @map("_id")
   orderId    String
   order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId  String
@@ -125,17 +128,18 @@ model OrderItem {
 }
 
 model Favorite {
+  id        String  @id @default(cuid()) @map("_id")
   userId    String
   productId String
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
-  @@id([userId, productId])
+  @@unique([userId, productId])
 }
 
 model ContactMessage {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   name      String
   email     String
   topic     String
@@ -147,14 +151,20 @@ model ContactMessage {
 }
 
 model NewsletterSubscriber {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   email     String   @unique
   createdAt DateTime @default(now())
 }
 
 /// Editable site content (e.g. key "home" = home page sections), stored as JSON.
 model SiteContent {
-  key       String   @id
+  key       String   @id @map("_id")
   data      Json
   updatedAt DateTime @updatedAt
+}
+
+/// Sequence numbers (e.g. id "order" → next order number).
+model Counter {
+  id    String @id @map("_id")
+  value Int
 }

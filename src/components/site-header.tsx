@@ -56,7 +56,7 @@ export async function Logo() {
 export async function SiteHeader() {
   const [user, categories, header] = await Promise.all([
     getCurrentUser(),
-    db.category.findMany({ orderBy: [{ position: "asc" }, { name: "asc" }], select: { slug: true, name: true, icon: true } }),
+    db.category.findMany({ where: { slug: { not: "unassigned" } }, orderBy: [{ position: "asc" }, { name: "asc" }], select: { slug: true, name: true, icon: true } }),
     getHeaderContent(),
   ]);
   const { icons } = header;

@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { nextOrderNumber } from "@/lib/order-number";
 import { getCurrentUser } from "@/lib/session";
 import { rateLimit } from "@/lib/rate-limit";
 import { verifyTurnstile } from "@/lib/turnstile";
@@ -102,6 +103,7 @@ export async function placeOrder(input: unknown): Promise<CheckoutResult> {
 
   const order = await db.order.create({
     data: {
+      number: await nextOrderNumber(db),
       userId: user?.id,
       email: d.email,
       firstName: d.firstName,

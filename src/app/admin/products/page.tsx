@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { money } from "@/lib/format";
 import { duplicateProduct, setProductPublished } from "@/lib/actions/admin";
 import { DeleteButton } from "./delete-button";
+import { SyncButton } from "./sync-button";
 
 const action = "rounded-lg px-2.5 py-1 font-medium transition hover:underline";
 
@@ -34,6 +35,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
             <input name="q" defaultValue={q} placeholder="Search by name or category" aria-label="Search products" className="h-10 w-full bg-transparent text-sm outline-none placeholder:text-muted" />
             {q && <Link href="/admin/products" aria-label="Clear search" className="rounded-md p-1 text-muted hover:bg-surface hover:text-ink"><X className="size-4" /></Link>}
           </form>
+          {process.env.PARTNER_API_URL && <SyncButton />}
           <Link href="/admin/products/new" className="btn-primary py-2"><Plus className="size-4" />New product</Link>
         </div>
       </div>

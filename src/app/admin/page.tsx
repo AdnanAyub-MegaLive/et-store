@@ -25,7 +25,7 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
   const days = RANGES[range];
   const { now, since, prevSince } = windowFor(days);
 
-  const [paidNow, paidPrev, ordersNow, ordersPrev, customers, customersPrev, products, series, byCategory, top, recent] = await Promise.all([
+  const [paidNow, paidPrev, ordersNow, ordersPrev, customers, customersPrev, products, paidOrders, recent] = await Promise.all([
     db.order.aggregate({ where: { status: "PAID", createdAt: { gte: since } }, _sum: { total: true }, _count: true }),
     db.order.aggregate({ where: { status: "PAID", createdAt: { gte: prevSince, lt: since } }, _sum: { total: true } }),
     db.order.count({ where: { createdAt: { gte: since } } }),
@@ -33,26 +33,31 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
     db.user.count({ where: { role: "USER" } }),
     db.user.count({ where: { role: "USER", createdAt: { lt: since } } }),
     db.product.count({ where: { published: true } }),
-    db.$queryRaw<{ day: Date; total: bigint }[]>`
-      SELECT date_trunc('day', "createdAt") AS day, SUM(total)::bigint AS total
-      FROM "Order" WHERE status = 'PAID' AND "createdAt" >= ${since}
-      GROUP BY 1 ORDER BY 1`,
-    db.$queryRaw<{ name: string; total: bigint }[]>`
-      SELECT c.name, SUM(oi."priceCents" * oi.quantity)::bigint AS total
-      FROM "OrderItem" oi JOIN "Order" o ON o.id = oi."orderId"
-      JOIN "Product" p ON p.id = oi."productId" JOIN "Category" c ON c.id = p."categoryId"
-      WHERE o.status = 'PAID' AND o."createdAt" >= ${since}
-      GROUP BY c.name ORDER BY total DESC`,
-    db.$queryRaw<{ name: string; units: bigint }[]>`
-      SELECT p.name, SUM(oi.quantity)::bigint AS units
-      FROM "OrderItem" oi JOIN "Order" o ON o.id = oi."orderId" JOIN "Product" p ON p.id = oi."productId"
-      WHERE o.status = 'PAID' AND o."createdAt" >= ${since}
-      GROUP BY p.name ORDER BY units DESC LIMIT 4`,
+    // Paid orders in the window, summed in JS (works on MongoDB; no SQL GROUP BY).
+    db.order.findMany({
+      where: { status: "PAID", createdAt: { gte: since } },
+      select: { createdAt: true, total: true, items: { select: { priceCents: true, quantity: true, product: { select: { name: true, category: { select: { name: true } } } } } } },
+    }),
     db.order.findMany({ orderBy: { createdAt: "desc" }, take: 6, include: { items: { take: 1, include: { product: { select: { name: true } } } } } }),
   ]);
 
+  const dayTotals = new Map<string, number>();
+  const catTotals = new Map<string, number>();
+  const units = new Map<string, number>();
+  for (const o of paidOrders) {
+    const day = o.createdAt.toISOString().slice(0, 10);
+    dayTotals.set(day, (dayTotals.get(day) ?? 0) + o.total);
+    for (const it of o.items) {
+      const cat = it.product.category.name;
+      catTotals.set(cat, (catTotals.get(cat) ?? 0) + it.priceCents * it.quantity);
+      units.set(it.product.name, (units.get(it.product.name) ?? 0) + it.quantity);
+    }
+  }
+  const byCategory = [...catTotals].map(([name, total]) => ({ name, total })).sort((a, b) => b.total - a.total);
+  const top = [...units].map(([name, n]) => ({ name, units: n })).sort((a, b) => b.units - a.units).slice(0, 4);
+
   const revenue = paidNow._sum.total ?? 0;
-  const map = new Map(series.map((s) => [s.day.toISOString().slice(0, 10), Number(s.total)]));
+  const map = dayTotals;
   const points = Array.from({ length: Math.min(days, 90) + 1 }, (_, i) => {
     const d = new Date(now - (Math.min(days, 90) - i) * 864e5);
     return { label: shortDate(d), value: (map.get(d.toISOString().slice(0, 10)) ?? 0) / 100 };

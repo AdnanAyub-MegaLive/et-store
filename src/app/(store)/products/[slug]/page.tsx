@@ -9,6 +9,7 @@ import { money } from "@/lib/format";
 import { BuyButtons } from "./buy-buttons";
 import { accentFor } from "@/components/icons";
 import { ProductGallery } from "@/components/product-gallery";
+import { MotionPreview } from "@/components/motion-preview";
 
 const FEATURE_COLORS = ["from-violet-500 to-indigo-500", "from-pink-500 to-rose-500", "from-cyan-400 to-sky-500", "from-emerald-400 to-teal-500", "from-amber-400 to-orange-500", "from-fuchsia-500 to-purple-500"];
 
@@ -45,7 +46,11 @@ export default async function ProductPage({ params, searchParams }: P & { search
 
       <div className="mt-8 grid gap-10 lg:grid-cols-2">
         <div data-slide="left">
-          <ProductGallery name={p.name} images={[p.image, ...p.gallery]} />
+          {p.partnerId && p.partnerMotion && !p.gallery.length ? (
+            <MotionPreview src={`/partner-media/${encodeURIComponent(p.partnerId)}/motion`} poster={p.image} name={p.name} />
+          ) : (
+            <ProductGallery name={p.name} images={[p.image, ...p.gallery]} />
+          )}
         </div>
 
         <div data-slide="right" className="flex flex-col gap-5">

@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { nextOrderNumber } from "../src/lib/order-number";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 
@@ -97,6 +98,7 @@ async function main() {
       const tax = Math.round(p.priceCents * 0.08);
       await db.order.create({
         data: {
+          number: await nextOrderNumber(db),
           email: `${first.toLowerCase()}.${last.toLowerCase()}@example.com`,
           firstName: first, lastName: last, country: "United States", address: "245 Mercer Street", city: "New York", state: "NY", zip: "10012",
           subtotal: p.priceCents, tax, total: p.priceCents + tax,

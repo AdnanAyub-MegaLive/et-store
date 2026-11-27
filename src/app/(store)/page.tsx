@@ -31,7 +31,7 @@ const SectionHead = ({ title, href, link }: { title: string; href?: string; link
 export default async function Home() {
   const [content, rawCategories, trending] = await Promise.all([
     getHomeContent(),
-    db.category.findMany({ orderBy: [{ position: "asc" }, { name: "asc" }], include: { _count: { select: { products: { where: { published: true } } } } } }),
+    db.category.findMany({ where: { slug: { not: "unassigned" } }, orderBy: [{ position: "asc" }, { name: "asc" }], include: { _count: { select: { products: { where: { published: true } } } } } }),
     db.product.findMany({
       where: { published: true },
       orderBy: [{ featured: "desc" }, { reviewCount: "desc" }],

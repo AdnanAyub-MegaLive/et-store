@@ -380,3 +380,24 @@ export async function resetContactContent() {
   await db.siteContent.deleteMany({ where: { key: CONTACT_KEY } });
   revalidatePath("/contact");
 }
+
+export type SyncState = { ok?: string; error?: string } | undefined;
+
+/** Pull Mall items from the Partner Store API into Products (admin → Products → Sync from Mall). */
+export async function syncFromMall(_: SyncState): Promise<SyncState> {
+  await requireAdmin();
+  const { partnerConfigured, syncPartnerItems, PartnerError } = await import("@/lib/partner");
+  if (!partnerConfigured()) return { error: "Partner key missing: add PARTNER_API_KEY to .env (local) or Vercel env vars, then restart." };
+  try {
+    const r = await syncPartnerItems();
+    revalidatePath("/", "layout");
+    return { ok: `Sync done: ${r.created} new, ${r.updated} updated, ${r.removed} hidden (left the Mall).` };
+  } catch (e) {
+    if (e instanceof PartnerError) {
+      if (e.status === 401) return { error: "The partner key was rejected (missing, wrong or revoked)." };
+      if (e.status === 429) return { error: "Too many requests to the Mall. Try again in a minute." };
+      return { error: `Mall API error: ${e.code}` };
+    }
+    return { error: "Could not reach the Mall API. Check PARTNER_API_URL and try again." };
+  }
+}
