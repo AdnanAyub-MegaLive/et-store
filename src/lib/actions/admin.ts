@@ -162,14 +162,27 @@ export async function uploadProductImage(_: UploadState, form: FormData): Promis
 
   const name = `${randomBytes(16).toString("hex")}.${ext}`;
   // On Vercel the disk is read-only, so uploads go to Vercel Blob when its token is set.
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const { put } = await import("@vercel/blob");
-    const blob = await put(`uploads/${name}`, buf, { access: "public", contentType: UPLOAD_TYPES[ext], addRandomSuffix: false });
-    return { url: blob.url };
+  try {
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const { put } = await import("@vercel/blob");
+      const opts = { contentType: UPLOAD_TYPES[ext], addRandomSuffix: false } as const;
+      try {
+        return { url: (await put(`uploads/${name}`, buf, { ...opts, access: "public" })).url };
+      } catch (e) {
+        // A private Blob store refuses public files: store it privately and serve it through /uploads/[name].
+        if (!/private/i.test(String((e as Error)?.message))) throw e;
+        await put(`uploads/${name}`, buf, { ...opts, access: "private" });
+        return { url: `/uploads/${name}` };
+      }
+    }
+    await mkdir(UPLOAD_DIR, { recursive: true });
+    await writeFile(path.join(/*turbopackIgnore: true*/ UPLOAD_DIR, name), buf);
+    return { url: `/uploads/${name}` };
+  } catch (e) {
+    console.error("Image upload failed:", e);
+    const msg = String((e as Error)?.message ?? e).slice(0, 160);
+    return { error: process.env.BLOB_READ_WRITE_TOKEN ? `Upload failed: ${msg}` : "Upload failed: connect Vercel Blob (BLOB_READ_WRITE_TOKEN) for uploads on the live site." };
   }
-  await mkdir(UPLOAD_DIR, { recursive: true });
-  await writeFile(path.join(UPLOAD_DIR, name), buf);
-  return { url: `/uploads/${name}` };
 }
 
 /** Move a product to draft (hidden from the store) or publish it again. */
