@@ -40,3 +40,16 @@ export function unsafeSvgReason(svg: string): string | null {
   if (/(href|src)\s*=\s*["']\s*(https?:)?\/\//.test(s)) return "SVG links to an outside file";
   return null;
 }
+
+/**
+ * Vercel Blob read-write token. Connecting a store with a custom prefix names it
+ * e.g. MY_STORE_READ_WRITE_TOKEN instead of BLOB_READ_WRITE_TOKEN, so accept any
+ * *_READ_WRITE_TOKEN whose value is a Blob token.
+ */
+export function blobToken(): string | undefined {
+  if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
+  for (const [k, v] of Object.entries(process.env)) {
+    if (k.endsWith("READ_WRITE_TOKEN") && v?.startsWith("vercel_blob_rw_")) return v;
+  }
+  return undefined;
+}

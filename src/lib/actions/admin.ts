@@ -9,7 +9,7 @@ import type { FormState } from "./auth";
 import { randomBytes } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { MAX_UPLOAD_BYTES, UPLOAD_DIR, detectType, unsafeSvgReason, UPLOAD_TYPES } from "@/lib/uploads";
+import { MAX_UPLOAD_BYTES, UPLOAD_DIR, blobToken, detectType, unsafeSvgReason, UPLOAD_TYPES } from "@/lib/uploads";
 import { homeContentSchema } from "@/lib/home-content-schema";
 import { ABOUT_KEY, CONTACT_KEY, HEADER_KEY, HOME_KEY } from "@/lib/home-content";
 import { aboutContentSchema } from "@/lib/about-content-schema";
@@ -163,9 +163,10 @@ export async function uploadProductImage(_: UploadState, form: FormData): Promis
   const name = `${randomBytes(16).toString("hex")}.${ext}`;
   // On Vercel the disk is read-only, so uploads go to Vercel Blob when its token is set.
   try {
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const token = blobToken();
+    if (token) {
       const { put } = await import("@vercel/blob");
-      const opts = { contentType: UPLOAD_TYPES[ext], addRandomSuffix: false } as const;
+      const opts = { token, contentType: UPLOAD_TYPES[ext], addRandomSuffix: false } as const;
       try {
         return { url: (await put(`uploads/${name}`, buf, { ...opts, access: "public" })).url };
       } catch (e) {
@@ -181,7 +182,7 @@ export async function uploadProductImage(_: UploadState, form: FormData): Promis
   } catch (e) {
     console.error("Image upload failed:", e);
     const msg = String((e as Error)?.message ?? e).slice(0, 160);
-    return { error: process.env.BLOB_READ_WRITE_TOKEN ? `Upload failed: ${msg}` : "Upload failed: connect Vercel Blob (BLOB_READ_WRITE_TOKEN) for uploads on the live site." };
+    return { error: blobToken() ? `Upload failed: ${msg}` : "Upload failed: connect Vercel Blob (BLOB_READ_WRITE_TOKEN) for uploads on the live site." };
   }
 }
 

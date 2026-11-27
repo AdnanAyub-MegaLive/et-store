@@ -1,15 +1,16 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { UPLOAD_DIR, UPLOAD_NAME, UPLOAD_TYPES, type UploadExt } from "@/lib/uploads";
+import { UPLOAD_DIR, UPLOAD_NAME, UPLOAD_TYPES, blobToken, type UploadExt } from "@/lib/uploads";
 
 /** Local disk first; on Vercel, the private Blob store. */
 async function readUpload(name: string): Promise<Uint8Array> {
   try {
     return await readFile(path.join(/*turbopackIgnore: true*/ UPLOAD_DIR, name));
   } catch (e) {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) throw e;
+    const token = blobToken();
+    if (!token) throw e;
     const { get } = await import("@vercel/blob");
-    const r = await get(`uploads/${name}`, { access: "private" });
+    const r = await get(`uploads/${name}`, { access: "private", token });
     if (!r || r.statusCode !== 200) throw e;
     return new Uint8Array(await new Response(r.stream).arrayBuffer());
   }
