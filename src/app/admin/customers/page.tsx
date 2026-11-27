@@ -1,15 +1,14 @@
-import { db } from "@/lib/db";
+import { cols } from "@/lib/db";
 import { money, shortDate } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
 import { setUserRole } from "@/lib/actions/admin";
 
 export default async function CustomersPage() {
   const me = await requireAdmin();
-  const users = await db.user.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 100,
-    select: { id: true, name: true, email: true, role: true, createdAt: true, orders: { where: { status: "PAID" }, select: { total: true } } },
-  });
+  const { users: usersCol, orders } = await cols();
+  const list = await usersCol.find({}, { projection: { name: 1, email: 1, role: 1, createdAt: 1 } }).sort({ createdAt: -1 }).limit(100).toArray();
+  const paid = await orders.find({ userId: { $in: list.map((u) => u._id) }, status: "PAID" }, { projection: { userId: 1, total: 1 } }).toArray();
+  const users = list.map(({ _id, ...u }) => ({ ...u, id: _id, orders: paid.filter((o) => o.userId === _id).map((o) => ({ total: o.total })) }));
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold">Customers</h1>

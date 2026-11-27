@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
-import { db } from "@/lib/db";
+import { cols } from "@/lib/db";
 import { getAboutContent } from "@/lib/home-content";
 import { ABOUT_COLORS, ABOUT_ICON_MAP } from "@/lib/about-icons";
 import { PageHero } from "@/components/page-hero";
@@ -20,8 +20,8 @@ function CtaLink({ href, className, children }: { href: string; className: strin
 export default async function AboutPage() {
   const [c, products, categories] = await Promise.all([
     getAboutContent(),
-    db.product.count({ where: { published: true } }),
-    db.category.count(),
+    cols().then((c) => c.products.countDocuments({ published: true })),
+    cols().then((c) => c.categories.countDocuments({ slug: { $ne: "unassigned" } })),
   ]);
   const stats = c.stats.items.map((s) => {
     const value = s.source === "products" ? products : s.source === "categories" ? categories : s.value;

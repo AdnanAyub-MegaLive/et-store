@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, ChevronRight, Download, Gift, Quote, ShieldCheck } from "lucide-react";
-import { db } from "@/lib/db";
+import { categoriesWithCounts, cols, withCategories } from "@/lib/db";
 import { HowItWorks } from "@/components/how-it-works";
 import { ProductCard } from "@/components/product-card";
 import { NewsletterForm } from "@/components/newsletter-form";
@@ -31,13 +31,8 @@ const SectionHead = ({ title, href, link }: { title: string; href?: string; link
 export default async function Home() {
   const [content, rawCategories, trending] = await Promise.all([
     getHomeContent(),
-    db.category.findMany({ where: { slug: { not: "unassigned" } }, orderBy: [{ position: "asc" }, { name: "asc" }], include: { _count: { select: { products: { where: { published: true } } } } } }),
-    db.product.findMany({
-      where: { published: true },
-      orderBy: [{ featured: "desc" }, { reviewCount: "desc" }],
-      take: 4,
-      include: { category: { select: { name: true } } },
-    }),
+    categoriesWithCounts({ publishedOnly: true, hideSlug: "unassigned" }),
+    cols().then(async ({ products }) => withCategories(await products.find({ published: true }).sort({ featured: -1, reviewCount: -1 }).limit(4).toArray())),
   ]);
   const categories = rawCategories;
   const { hero, clients, promo, testimonials, newsletter } = content;

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { cache } from "react";
 import { Check, ChevronRight, Download, RefreshCw, ShieldCheck, Star } from "lucide-react";
-import { db } from "@/lib/db";
+import { cols, withCategories } from "@/lib/db";
 import { money } from "@/lib/format";
 import { BuyButtons } from "./buy-buttons";
 import { accentFor } from "@/components/icons";
@@ -13,9 +13,10 @@ import { MotionPreview } from "@/components/motion-preview";
 
 const FEATURE_COLORS = ["from-violet-500 to-indigo-500", "from-pink-500 to-rose-500", "from-cyan-400 to-sky-500", "from-emerald-400 to-teal-500", "from-amber-400 to-orange-500", "from-fuchsia-500 to-purple-500"];
 
-const getProduct = cache((slug: string) =>
-  db.product.findFirst({ where: { slug, published: true }, include: { category: true } }),
-);
+const getProduct = cache(async (slug: string) => {
+  const doc = await (await cols()).products.findOne({ slug, published: true });
+  return doc ? (await withCategories([doc]))[0] : null;
+});
 
 type P = { params: Promise<{ slug: string }> };
 
@@ -28,12 +29,13 @@ export default async function ProductPage({ params, searchParams }: P & { search
   const p = await getProduct((await params).slug);
   if (!p) notFound();
   const tab = (await searchParams).tab ?? "overview";
-  const related = await db.product.findMany({
-    where: { published: true, id: { not: p.id } },
-    orderBy: { reviewCount: "desc" },
-    take: 4,
-    select: { id: true, slug: true, name: true, image: true, priceCents: true },
-  });
+  const related = (
+    await (await cols()).products
+      .find({ published: true, _id: { $ne: p.id } }, { projection: { slug: 1, name: 1, image: 1, priceCents: 1 } })
+      .sort({ reviewCount: -1 })
+      .limit(4)
+      .toArray()
+  ).map(({ _id, ...r }) => ({ id: _id, ...r }));
   const off = p.compareCents ? Math.round((1 - p.priceCents / p.compareCents) * 100) : 0;
 
   return (

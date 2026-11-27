@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { db } from "@/lib/db";
+import { cols } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 import { revalidatePath } from "next/cache";
 
@@ -24,30 +24,28 @@ export async function POST(req: Request) {
     case "checkout.session.async_payment_succeeded": {
       const s = event.data.object;
       if (s.payment_status !== "paid") break;
-      const order = await db.order.findUnique({ where: { stripeSessionId: s.id } });
+      const { orders } = await cols();
+      const doc = await orders.findOne({ stripeSessionId: s.id });
+      const order = doc && { ...doc, id: doc._id };
       // Amount check guards against a session being tampered with or mismatched.
       if (!order || order.status === "PAID" || s.amount_total !== order.total || s.currency !== "usd") {
         if (order && s.amount_total !== order.total) console.error("[stripe] amount mismatch", order.id, s.amount_total, order.total);
         break;
       }
-      await db.order.update({
-        where: { id: order.id },
-        data: {
-          status: "PAID",
-          paidAt: new Date(),
-          stripePaymentIntentId: typeof s.payment_intent === "string" ? s.payment_intent : s.payment_intent?.id,
-        },
-      });
+      await orders.updateOne(
+        { _id: order.id, status: { $ne: "PAID" } },
+        { $set: { status: "PAID", paidAt: new Date(), stripePaymentIntentId: (typeof s.payment_intent === "string" ? s.payment_intent : s.payment_intent?.id) ?? null } },
+      );
       break;
     }
     case "checkout.session.expired":
     case "checkout.session.async_payment_failed":
-      await db.order.updateMany({ where: { stripeSessionId: event.data.object.id, status: "PENDING" }, data: { status: "CANCELLED" } });
+      await (await cols()).orders.updateMany({ stripeSessionId: event.data.object.id, status: "PENDING" }, { $set: { status: "CANCELLED" } });
       break;
     case "charge.refunded": {
       const c = event.data.object;
       const pi = typeof c.payment_intent === "string" ? c.payment_intent : c.payment_intent?.id;
-      if (pi && c.refunded) await db.order.updateMany({ where: { stripePaymentIntentId: pi }, data: { status: "REFUNDED" } });
+      if (pi && c.refunded) await (await cols()).orders.updateMany({ stripePaymentIntentId: pi }, { $set: { status: "REFUNDED" } });
       break;
     }
   }

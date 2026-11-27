@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ChevronLeft, ChevronRight, Search, SlidersHorizontal } from "lucide-react";
-import type { Prisma } from "@prisma/client";
-import { db } from "@/lib/db";
+import type { Filter, Sort } from "mongodb";
+import { categoriesWithCounts, cols, escapeRegex, withCategories, type Doc, type Product } from "@/lib/db";
 import { ProductCard } from "@/components/product-card";
 import { accentFor } from "@/components/icons";
 
@@ -27,36 +27,35 @@ export default async function Shop({ searchParams }: { searchParams: SP }) {
   const sort = (one(sp.sort) in SORTS ? one(sp.sort) : "featured") as keyof typeof SORTS;
   const page = Math.max(1, Math.floor(Number(one(sp.page)) || 1));
 
-  const where: Prisma.ProductWhereInput = {
+  const { products: productsCol, categories: categoriesCol } = await cols();
+  const rx = q ? { $regex: escapeRegex(q), $options: "i" } : null;
+  const [qCatIds, slugCatIds] = await Promise.all([
+    rx ? categoriesCol.distinct("_id", { name: rx }) : [],
+    cats.length ? categoriesCol.distinct("_id", { slug: { $in: cats } }) : [],
+  ]);
+  const where: Filter<Doc<Product>> = {
     published: true,
-    ...(q && {
-      OR: [
-        { name: { contains: q, mode: "insensitive" } },
-        { tagline: { contains: q, mode: "insensitive" } },
-        { creator: { contains: q, mode: "insensitive" } },
-        { category: { name: { contains: q, mode: "insensitive" } } },
-      ],
-    }),
-    ...(cats.length && { category: { slug: { in: cats } } }),
+    ...(rx && { $or: [{ name: rx }, { tagline: rx }, { creator: rx }, { categoryId: { $in: qCatIds } }] }),
+    ...(cats.length && { categoryId: { $in: slugCatIds } }),
     ...((minPrice !== null || maxPrice !== null) && {
       priceCents: {
-        ...(minPrice !== null && { gte: minPrice * 100 }),
-        ...(maxPrice !== null && { lte: maxPrice * 100 }),
+        ...(minPrice !== null && { $gte: minPrice * 100 }),
+        ...(maxPrice !== null && { $lte: maxPrice * 100 }),
       },
     }),
   };
-  const orderBy: Prisma.ProductOrderByWithRelationInput[] = {
-    featured: [{ featured: "desc" as const }, { reviewCount: "desc" as const }],
-    newest: [{ createdAt: "desc" as const }],
-    "price-asc": [{ priceCents: "asc" as const }],
-    "price-desc": [{ priceCents: "desc" as const }],
-    rating: [{ rating: "desc" as const }],
-  }[sort];
+  const orderBy: Sort = {
+    featured: { featured: -1, reviewCount: -1, _id: 1 },
+    newest: { createdAt: -1, _id: 1 },
+    "price-asc": { priceCents: 1, _id: 1 },
+    "price-desc": { priceCents: -1, _id: 1 },
+    rating: { rating: -1, _id: 1 },
+  }[sort] as Sort;
 
   const [categories, total, products] = await Promise.all([
-    db.category.findMany({ where: { slug: { not: "unassigned" } }, orderBy: [{ position: "asc" }, { name: "asc" }], include: { _count: { select: { products: { where: { published: true } } } } } }),
-    db.product.count({ where }),
-    db.product.findMany({ where, orderBy, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { category: { select: { name: true } } } }),
+    categoriesWithCounts({ publishedOnly: true, hideSlug: "unassigned" }),
+    productsCol.countDocuments(where),
+    productsCol.find(where).sort(orderBy).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).toArray().then(withCategories),
   ]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 

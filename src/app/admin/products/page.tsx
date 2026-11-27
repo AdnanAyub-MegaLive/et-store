@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Plus, Search, X } from "lucide-react";
-import { db } from "@/lib/db";
+import { cols, escapeRegex, withCategories } from "@/lib/db";
 import { money } from "@/lib/format";
 import { duplicateProduct, setProductPublished } from "@/lib/actions/admin";
 import { DeleteButton } from "./delete-button";
@@ -12,19 +12,20 @@ const action = "rounded-lg px-2.5 py-1 font-medium transition hover:underline";
 export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
   const raw = (await searchParams).q;
   const q = (Array.isArray(raw) ? raw[0] : raw ?? "").trim().slice(0, 100);
-  const products = await db.product.findMany({
-    where: q
-      ? {
-          OR: [
-            { name: { contains: q, mode: "insensitive" } },
-            { slug: { contains: q, mode: "insensitive" } },
-            { category: { name: { contains: q, mode: "insensitive" } } },
-          ],
-        }
-      : undefined,
-    orderBy: { createdAt: "desc" },
-    include: { category: { select: { name: true } }, _count: { select: { orderItems: true } } },
-  });
+  const { products: productsCol, categories, orders } = await cols();
+  const rx = { $regex: escapeRegex(q), $options: "i" };
+  const catIds = q ? await categories.distinct("_id", { name: rx }) : [];
+  const list = await withCategories(
+    await productsCol.find(q ? { $or: [{ name: rx }, { slug: rx }, { categoryId: { $in: catIds } }] } : {}).sort({ createdAt: -1 }).toArray(),
+  );
+  const sold = new Map(
+    (
+      await orders
+        .aggregate<{ _id: string; n: number }>([{ $unwind: "$items" }, { $match: { "items.productId": { $in: list.map((p) => p.id) } } }, { $group: { _id: "$items.productId", n: { $sum: 1 } } }])
+        .toArray()
+    ).map((r) => [r._id, r.n]),
+  );
+  const products = list.map((p) => ({ ...p, _count: { orderItems: sold.get(p.id) ?? 0 } }));
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">

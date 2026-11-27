@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
-import type { OrderStatus, Prisma } from "@prisma/client";
-import { db } from "@/lib/db";
+import type { Filter } from "mongodb";
+import { cols, escapeRegex, withOrderProducts, type Doc, type Order, type OrderStatus } from "@/lib/db";
 import { money, shortDate } from "@/lib/format";
 import { setOrderStatus } from "@/lib/actions/admin";
 import { StatusBadge } from "../status-badge";
@@ -16,21 +16,24 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const page = Math.max(1, Number(sp.page) || 1);
   const num = Number(q.replace(/^LM-/i, ""));
 
-  const where: Prisma.OrderWhereInput = {
+  const { orders: ordersCol, products } = await cols();
+  const rx = { $regex: escapeRegex(q), $options: "i" };
+  const productIds = q ? await products.distinct("_id", { name: rx }) : [];
+  const where: Filter<Doc<Order>> = {
     ...(status && { status }),
     ...(q && {
-      OR: [
+      $or: [
         ...(Number.isInteger(num) && num > 0 ? [{ number: num }] : []),
-        { email: { contains: q, mode: "insensitive" as const } },
-        { firstName: { contains: q, mode: "insensitive" as const } },
-        { lastName: { contains: q, mode: "insensitive" as const } },
-        { items: { some: { product: { name: { contains: q, mode: "insensitive" as const } } } } },
+        { email: rx },
+        { firstName: rx },
+        { lastName: rx },
+        { "items.productId": { $in: productIds } },
       ],
     }),
   };
   const [total, orders] = await Promise.all([
-    db.order.count({ where }),
-    db.order.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * PAGE, take: PAGE, include: { items: { include: { product: { select: { name: true } } } } } }),
+    ordersCol.countDocuments(where),
+    ordersCol.find(where).sort({ createdAt: -1 }).skip((page - 1) * PAGE).limit(PAGE).toArray().then(withOrderProducts),
   ]);
   const pages = Math.ceil(total / PAGE);
 

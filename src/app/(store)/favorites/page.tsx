@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import { getCurrentUser } from "@/lib/session";
-import { db } from "@/lib/db";
+import { cols, withCategories } from "@/lib/db";
 import { PageHero } from "@/components/page-hero";
 import { ProductCard } from "@/components/product-card";
 
@@ -11,11 +11,15 @@ export const metadata: Metadata = { title: "Favorites", robots: { index: false }
 export default async function FavoritesPage() {
   const user = await getCurrentUser();
   const favorites = user
-    ? await db.favorite.findMany({
-        where: { userId: user.id, product: { published: true } },
-        orderBy: { createdAt: "desc" },
-        include: { product: { include: { category: { select: { name: true } } } } },
-      })
+    ? await (async () => {
+        const { favorites, products } = await cols();
+        const favs = await favorites.find({ userId: user.id }).sort({ createdAt: -1 }).toArray();
+        const prods = new Map((await withCategories(await products.find({ _id: { $in: favs.map((f) => f.productId) }, published: true }).toArray())).map((p) => [p.id, p]));
+        return favs.flatMap(({ _id, ...f }) => {
+          const product = prods.get(f.productId);
+          return product ? [{ ...f, id: _id, product }] : [];
+        });
+      })()
     : [];
 
   return (

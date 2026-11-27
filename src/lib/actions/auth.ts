@@ -4,7 +4,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { createHash, randomBytes } from "crypto";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
+import { cols, fromDoc, isDuplicateKey, newId, type User } from "@/lib/db";
 import { createSession, deleteSession } from "@/lib/session";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -33,7 +33,7 @@ export async function login(_: FormState, form: FormData): Promise<FormState> {
     .safeParse({ email: form.get("email"), password: form.get("password") });
   if (!parsed.success) return { error: "Invalid email or password" };
 
-  const user = await db.user.findUnique({ where: { email: parsed.data.email } });
+  const user = fromDoc<User>(await (await cols()).users.findOne({ email: parsed.data.email }));
   const ok = await bcrypt.compare(parsed.data.password, user?.passwordHash ?? DUMMY_HASH);
   if (!user || !ok) return { error: "Invalid email or password" };
 
@@ -48,16 +48,26 @@ export async function register(_: FormState, form: FormData): Promise<FormState>
     .safeParse({ name: form.get("name"), email: form.get("email"), password: form.get("password") });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const exists = await db.user.findUnique({ where: { email: parsed.data.email }, select: { id: true } });
+  const { users } = await cols();
+  const exists = await users.findOne({ email: parsed.data.email }, { projection: { _id: 1 } });
   if (exists) return { error: "An account with that email already exists" };
 
-  const user = await db.user.create({
-    data: {
+  const now = new Date();
+  const user = { id: newId(), role: "USER" as const };
+  try {
+    await users.insertOne({
+      _id: user.id,
       name: parsed.data.name,
       email: parsed.data.email,
       passwordHash: await bcrypt.hash(parsed.data.password, 12),
-    },
-  });
+      role: user.role,
+      createdAt: now,
+      updatedAt: now,
+    });
+  } catch (e) {
+    if (isDuplicateKey(e)) return { error: "An account with that email already exists" };
+    throw e;
+  }
   await createSession(user.id, user.role);
   redirect("/account");
 }
@@ -72,15 +82,17 @@ export async function requestPasswordReset(_: FormState, form: FormData): Promis
   const parsed = email.safeParse(form.get("email"));
   if (!parsed.success) return { error: "Enter a valid email" };
 
-  const user = await db.user.findUnique({ where: { email: parsed.data } });
+  const { users, resetTokens } = await cols();
+  const user = await users.findOne({ email: parsed.data }, { projection: { _id: 1 } });
   if (user) {
     const token = randomBytes(32).toString("base64url");
-    await db.passwordResetToken.create({
-      data: {
-        userId: user.id,
-        tokenHash: createHash("sha256").update(token).digest("hex"),
-        expiresAt: new Date(Date.now() + 30 * 60_000),
-      },
+    await resetTokens.insertOne({
+      _id: newId(),
+      userId: user._id,
+      tokenHash: createHash("sha256").update(token).digest("hex"),
+      expiresAt: new Date(Date.now() + 30 * 60_000),
+      usedAt: null,
+      createdAt: new Date(),
     });
     const link = `${process.env.APP_URL ?? "http://localhost:3000"}/reset-password?token=${token}`;
     // TODO: send `link` with your email provider (Resend, SES, ...). Logged only in development.
@@ -97,12 +109,11 @@ export async function resetPassword(_: FormState, form: FormData): Promise<FormS
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const tokenHash = createHash("sha256").update(parsed.data.token).digest("hex");
-  const record = await db.passwordResetToken.findUnique({ where: { tokenHash } });
-  if (!record || record.usedAt || record.expiresAt < new Date()) return { error: "This reset link is invalid or has expired" };
-
-  await db.$transaction([
-    db.user.update({ where: { id: record.userId }, data: { passwordHash: await bcrypt.hash(parsed.data.password, 12) } }),
-    db.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
-  ]);
+  const { users, resetTokens } = await cols();
+  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  // Claim the token atomically (single use), then set the new password.
+  const record = await resetTokens.findOneAndUpdate({ tokenHash, usedAt: null, expiresAt: { $gt: new Date() } }, { $set: { usedAt: new Date() } });
+  if (!record) return { error: "This reset link is invalid or has expired" };
+  await users.updateOne({ _id: record.userId }, { $set: { passwordHash, updatedAt: new Date() } });
   redirect("/login?reset=1");
 }

@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Download, Heart, LogOut, Package, Wallet } from "lucide-react";
-import { db } from "@/lib/db";
+import { cols } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { logout } from "@/lib/actions/auth";
 import { money, shortDate } from "@/lib/format";
@@ -16,16 +16,18 @@ function greeting() {
 
 export default async function AccountPage() {
   const user = await requireUser();
-  const [items, favorites, spent] = await Promise.all([
-    db.orderItem.findMany({
-      where: { order: { userId: user.id } },
-      orderBy: { order: { createdAt: "desc" } },
-      take: 20,
-      include: { product: { select: { name: true, image: true, slug: true } }, order: { select: { status: true, createdAt: true } } },
-    }),
-    db.favorite.count({ where: { userId: user.id } }),
-    db.order.aggregate({ where: { userId: user.id, status: "PAID" }, _sum: { total: true } }),
+  const { orders, favorites: favoritesCol, products } = await cols();
+  const [myOrders, favorites, spentAgg] = await Promise.all([
+    orders.find({ userId: user.id }, { projection: { status: 1, createdAt: 1, items: 1 } }).sort({ createdAt: -1 }).limit(20).toArray(),
+    favoritesCol.countDocuments({ userId: user.id }),
+    orders.aggregate<{ total: number }>([{ $match: { userId: user.id, status: "PAID" } }, { $group: { _id: null, total: { $sum: "$total" } } }]).toArray(),
   ]);
+  const lines = myOrders.flatMap((o) => o.items.map((it) => ({ ...it, orderId: o._id, order: { status: o.status, createdAt: o.createdAt } }))).slice(0, 20);
+  const prodMap = new Map(
+    (await products.find({ _id: { $in: [...new Set(lines.map((l) => l.productId))] } }, { projection: { name: 1, image: 1, slug: 1 } }).toArray()).map((p) => [p._id, p]),
+  );
+  const items = lines.map((l) => ({ ...l, product: prodMap.get(l.productId) ?? { name: "Removed product", image: "/products/nova-ui-kit.png", slug: "" } }));
+  const spent = { _sum: { total: spentAgg[0]?.total ?? 0 } };
   const paid = items.filter((i) => i.order.status === "PAID");
   const stats = [
     { label: "Purchased products", value: paid.length, icon: Package, color: "from-violet-500 to-indigo-500" },

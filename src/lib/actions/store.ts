@@ -2,8 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { db } from "@/lib/db";
-import { nextOrderNumber } from "@/lib/order-number";
+import { cols, isDuplicateKey, newId, nextOrderNumber } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { rateLimit } from "@/lib/rate-limit";
 import { verifyTurnstile } from "@/lib/turnstile";
@@ -16,7 +15,10 @@ export async function subscribe(_: FormState, form: FormData): Promise<FormState
   if (!(await rateLimit("newsletter", 5, 60 * 60_000))) return { error: "Too many requests" };
   const parsed = z.string().trim().toLowerCase().email().max(254).safeParse(form.get("email"));
   if (!parsed.success) return { error: "Enter a valid email" };
-  await db.newsletterSubscriber.upsert({ where: { email: parsed.data }, create: { email: parsed.data }, update: {} });
+  const { newsletter } = await cols();
+  await newsletter.updateOne({ email: parsed.data }, { $setOnInsert: { _id: newId(), email: parsed.data, createdAt: new Date() } }, { upsert: true }).catch((e) => {
+    if (!isDuplicateKey(e)) throw e;
+  });
   return { ok: "You're subscribed!" };
 }
 
@@ -33,7 +35,7 @@ export async function sendContactMessage(_: FormState, form: FormData): Promise<
   const content = await getContactContent();
   if (!content.form.topics.includes(parsed.data.topic)) return { error: "Please choose a topic from the list." };
   if (!(await verifyTurnstile(form.get("cf-turnstile-response")))) return { error: "Please confirm you are not a robot." };
-  await db.contactMessage.create({ data: parsed.data });
+  await (await cols()).contactMessages.insertOne({ _id: newId(), ...parsed.data, read: false, createdAt: new Date() });
   revalidatePath("/admin", "layout");
   return { ok: content.form.successText };
 }
@@ -42,10 +44,12 @@ export async function toggleFavorite(productId: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "login" as const };
   const id = z.string().cuid().parse(productId);
-  const key = { userId_productId: { userId: user.id, productId: id } };
-  const existing = await db.favorite.findUnique({ where: key });
-  if (existing) await db.favorite.delete({ where: key });
-  else await db.favorite.create({ data: { userId: user.id, productId: id } });
+  const { favorites } = await cols();
+  const existing = await favorites.findOneAndDelete({ userId: user.id, productId: id });
+  if (!existing)
+    await favorites.insertOne({ _id: newId(), userId: user.id, productId: id, createdAt: new Date() }).catch((e) => {
+      if (!isDuplicateKey(e)) throw e;
+    });
   revalidatePath("/account");
   revalidatePath("/favorites");
   return { favorited: !existing };
@@ -54,10 +58,10 @@ export async function toggleFavorite(productId: string) {
 /** Lightweight product lookup for the client-side cart (prices always come from the DB). */
 export async function getCartProducts(ids: string[]) {
   const safe = z.array(z.string().cuid()).max(50).parse(ids);
-  return db.product.findMany({
-    where: { id: { in: safe }, published: true },
-    select: { id: true, slug: true, name: true, image: true, priceCents: true, format: true, category: { select: { name: true } } },
-  });
+  const { products, categories } = await cols();
+  const list = await products.find({ _id: { $in: safe }, published: true }, { projection: { slug: 1, name: 1, image: 1, priceCents: 1, format: 1, categoryId: 1 } }).toArray();
+  const cats = new Map((await categories.find({ _id: { $in: [...new Set(list.map((p) => p.categoryId))] } }).toArray()).map((c) => [c._id, c.name]));
+  return list.map((p) => ({ id: p._id, slug: p.slug, name: p.name, image: p.image, priceCents: p.priceCents, format: p.format, category: { name: cats.get(p.categoryId) ?? "" } }));
 }
 
 const checkoutSchema = z.object({
@@ -89,10 +93,8 @@ export async function placeOrder(input: unknown): Promise<CheckoutResult> {
   }
 
   // Never trust client prices: re-price everything from the database.
-  const products = await db.product.findMany({
-    where: { id: { in: d.items.map((i) => i.id) }, published: true },
-    select: { id: true, priceCents: true, name: true },
-  });
+  const { products: productsCol, orders } = await cols();
+  const products = (await productsCol.find({ _id: { $in: d.items.map((i) => i.id) }, published: true }, { projection: { priceCents: 1, name: 1 } }).toArray()).map((p) => ({ id: p._id, priceCents: p.priceCents, name: p.name }));
   if (products.length !== new Set(d.items.map((i) => i.id)).size) return { error: "Some items are no longer available." };
 
   const price = new Map(products.map((p) => [p.id, p.priceCents]));
@@ -101,10 +103,10 @@ export async function placeOrder(input: unknown): Promise<CheckoutResult> {
   const tax = Math.round(subtotal * TAX_RATE);
   const user = await getCurrentUser();
 
-  const order = await db.order.create({
-    data: {
-      number: await nextOrderNumber(db),
-      userId: user?.id,
+  const order = {
+      _id: newId(),
+      number: await nextOrderNumber(),
+      userId: user?.id ?? null,
       email: d.email,
       firstName: d.firstName,
       lastName: d.lastName,
@@ -116,11 +118,15 @@ export async function placeOrder(input: unknown): Promise<CheckoutResult> {
       subtotal,
       tax,
       total: subtotal + tax,
-      status: "PENDING",
-      items: { create: d.items.map((i) => ({ productId: i.id, quantity: i.qty, priceCents: price.get(i.id)! })) },
-    },
-    select: { id: true, number: true },
-  });
+      status: "PENDING" as const,
+      stripeSessionId: null,
+      stripePaymentIntentId: null,
+      paidAt: null,
+      items: d.items.map((i) => ({ id: newId(), productId: i.id, quantity: i.qty, priceCents: price.get(i.id)! })),
+      createdAt: new Date(),
+  };
+  await orders.insertOne(order);
+  const orderId = order._id;
 
   // Hosted Stripe Checkout: card data never touches our servers. The order is marked PAID only by the webhook.
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
@@ -129,9 +135,9 @@ export async function placeOrder(input: unknown): Promise<CheckoutResult> {
       {
         mode: "payment",
         customer_email: d.email,
-        client_reference_id: order.id,
-        metadata: { orderId: order.id },
-        payment_intent_data: { metadata: { orderId: order.id } },
+        client_reference_id: orderId,
+        metadata: { orderId },
+        payment_intent_data: { metadata: { orderId } },
         line_items: [
           ...d.items.map((i) => ({
             quantity: i.qty,
@@ -143,14 +149,14 @@ export async function placeOrder(input: unknown): Promise<CheckoutResult> {
         cancel_url: `${appUrl}/checkout?canceled=1`,
         expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
       },
-      { idempotencyKey: `order-${order.id}` },
+      { idempotencyKey: `order-${orderId}` },
     );
-    await db.order.update({ where: { id: order.id }, data: { stripeSessionId: session.id } });
+    await orders.updateOne({ _id: orderId }, { $set: { stripeSessionId: session.id } });
     revalidatePath("/admin");
     return { url: session.url! };
   } catch (e) {
     console.error("[stripe] session create failed", e);
-    await db.order.update({ where: { id: order.id }, data: { status: "CANCELLED" } });
+    await orders.updateOne({ _id: orderId }, { $set: { status: "CANCELLED" } });
     return { error: "Payment could not be started. Please try again." };
   }
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { cols } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 
 // Only the buyer of a PAID order can download. Wire `product.fileKey` to private storage (S3 signed URL) here.
@@ -7,10 +7,11 @@ export async function GET(_: Request, { params }: { params: Promise<{ itemId: st
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { itemId } = await params;
-  const item = await db.orderItem.findFirst({
-    where: { id: itemId, order: { userId: user.id, status: "PAID" } },
-    include: { product: { select: { name: true, slug: true } } },
-  });
+  const { orders, products } = await cols();
+  const order = await orders.findOne({ "items.id": itemId, userId: user.id, status: "PAID" }, { projection: { items: 1 } });
+  const line = order?.items.find((i) => i.id === itemId);
+  const product = line && (await products.findOne({ _id: line.productId }, { projection: { name: 1, slug: 1 } }));
+  const item = product ? { ...line, product } : null;
   if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return new NextResponse(`Thanks for purchasing ${item.product.name}.\nThe real file will be served here once storage is connected.\n`, {
     headers: {

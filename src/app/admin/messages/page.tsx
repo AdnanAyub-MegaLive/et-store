@@ -1,12 +1,12 @@
 import { Mail, MailOpen, Trash2 } from "lucide-react";
-import { db } from "@/lib/db";
+import { cols, fromDocs, type ContactMessage } from "@/lib/db";
 import { deleteMessage, setMessageRead } from "@/lib/actions/admin";
 
 export default async function MessagesPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
   const filter = (await searchParams).filter === "unread" ? "unread" : "all";
   const [messages, unread] = await Promise.all([
-    db.contactMessage.findMany({ where: filter === "unread" ? { read: false } : {}, orderBy: { createdAt: "desc" }, take: 100 }),
-    db.contactMessage.count({ where: { read: false } }),
+    cols().then(async (c) => fromDocs<ContactMessage>(await c.contactMessages.find(filter === "unread" ? { read: false } : {}).sort({ createdAt: -1 }).limit(100).toArray())),
+    cols().then((c) => c.contactMessages.countDocuments({ read: false })),
   ]);
 
   return (

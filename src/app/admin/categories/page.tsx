@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
-import { db } from "@/lib/db";
+import { categoriesWithCounts } from "@/lib/db";
 import { CategoryManager } from "./category-manager";
 
 export const metadata: Metadata = { title: "Categories" };
 
 export default async function CategoriesPage() {
-  const categories = await db.category.findMany({
-    orderBy: [{ position: "asc" }, { name: "asc" }],
-    include: { _count: { select: { products: true } } },
-  });
+  const categories = await categoriesWithCounts();
   return (
     <div className="flex flex-col gap-6">
       <div>

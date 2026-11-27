@@ -1,5 +1,5 @@
 import "server-only";
-import { db } from "@/lib/db";
+import { cols } from "@/lib/db";
 import { megaCatalog, type MegaItem } from "@/lib/mega";
 
 export type MegaSyncResult = { removed: number; restored: number; renamed: number };
@@ -13,17 +13,17 @@ export type MegaSyncResult = { removed: number; restored: number; renamed: numbe
 export async function syncMegaProducts(items?: MegaItem[]): Promise<MegaSyncResult> {
   const catalog = items ?? (await megaCatalog({ fresh: true }));
   const byId = new Map(catalog.map((i) => [i.id, i]));
-  const linked = await db.product.findMany({
-    where: { megaItemId: { not: null } },
-    select: { id: true, name: true, megaItemId: true, megaName: true, megaRemovedAt: true },
-  });
+  const { products } = await cols();
+  const linked = (
+    await products.find({ megaItemId: { $type: "string" } }, { projection: { name: 1, megaItemId: 1, megaName: 1, megaRemovedAt: 1 } }).toArray()
+  ).map(({ _id, ...p }) => ({ id: _id, ...p }));
   const result: MegaSyncResult = { removed: 0, restored: 0, renamed: 0 };
   const now = new Date();
   for (const p of linked) {
     const item = byId.get(p.megaItemId!);
     if (!item) {
       if (!p.megaRemovedAt) {
-        await db.product.update({ where: { id: p.id }, data: { published: false, megaRemovedAt: now } });
+        await products.updateOne({ _id: p.id }, { $set: { published: false, megaRemovedAt: now, updatedAt: now } });
         result.removed++;
       }
       continue;
@@ -35,7 +35,7 @@ export async function syncMegaProducts(items?: MegaItem[]): Promise<MegaSyncResu
     };
     if (p.megaRemovedAt) { data.megaRemovedAt = null; result.restored++; }
     if (item.name !== p.megaName && p.name === p.megaName) { data.name = item.name; result.renamed++; }
-    await db.product.update({ where: { id: p.id }, data });
+    await products.updateOne({ _id: p.id }, { $set: { ...data, updatedAt: now } });
   }
   return result;
 }

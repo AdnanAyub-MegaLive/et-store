@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { RefreshCw, Search, X } from "lucide-react";
-import { db } from "@/lib/db";
+import { cols, withCategories } from "@/lib/db";
 import { money } from "@/lib/format";
 import { megaCatalog, megaConfigured, megaImagePath, type MegaItem } from "@/lib/mega";
 import { syncMegaProducts } from "@/lib/mega-sync";
@@ -43,10 +43,11 @@ export default async function MegaCatalogPage({ searchParams }: { searchParams: 
   } catch (e) {
     error = (e as Error).message;
   }
-  const products = await db.product.findMany({
-    where: { megaItemId: { not: null } },
-    select: { id: true, megaItemId: true, name: true, priceCents: true, published: true, megaRemovedAt: true, megaName: true, megaCategory: true, category: { select: { name: true } } },
-  });
+  const products = await withCategories(
+    await (await cols()).products
+      .find({ megaItemId: { $type: "string" } }, { projection: { megaItemId: 1, name: 1, priceCents: 1, published: 1, megaRemovedAt: 1, megaName: 1, megaCategory: 1, categoryId: 1 } })
+      .toArray(),
+  );
   const byMega = new Map(products.map((p) => [p.megaItemId!, p]));
   const statusOf = (id: string): Status => {
     const p = byMega.get(id);

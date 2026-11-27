@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Box, ShoppingCart, TrendingUp, Users } from "lucide-react";
-import { db } from "@/lib/db";
+import { cols, withOrderProducts } from "@/lib/db";
 import { money, shortDate } from "@/lib/format";
 import { AreaChart, Donut } from "./charts";
 import { StatusBadge } from "./status-badge";
@@ -25,20 +25,22 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
   const days = RANGES[range];
   const { now, since, prevSince } = windowFor(days);
 
+  const { orders, users, products: productsCol } = await cols();
+  const sumPaid = async (createdAt: { $gte: Date; $lt?: Date }) => {
+    const [r] = await orders.aggregate<{ total: number; n: number }>([{ $match: { status: "PAID", createdAt } }, { $group: { _id: null, total: { $sum: "$total" }, n: { $sum: 1 } } }]).toArray();
+    return { _sum: { total: r?.total ?? 0 }, _count: r?.n ?? 0 };
+  };
   const [paidNow, paidPrev, ordersNow, ordersPrev, customers, customersPrev, products, paidOrders, recent] = await Promise.all([
-    db.order.aggregate({ where: { status: "PAID", createdAt: { gte: since } }, _sum: { total: true }, _count: true }),
-    db.order.aggregate({ where: { status: "PAID", createdAt: { gte: prevSince, lt: since } }, _sum: { total: true } }),
-    db.order.count({ where: { createdAt: { gte: since } } }),
-    db.order.count({ where: { createdAt: { gte: prevSince, lt: since } } }),
-    db.user.count({ where: { role: "USER" } }),
-    db.user.count({ where: { role: "USER", createdAt: { lt: since } } }),
-    db.product.count({ where: { published: true } }),
+    sumPaid({ $gte: since }),
+    sumPaid({ $gte: prevSince, $lt: since }),
+    orders.countDocuments({ createdAt: { $gte: since } }),
+    orders.countDocuments({ createdAt: { $gte: prevSince, $lt: since } }),
+    users.countDocuments({ role: "USER" }),
+    users.countDocuments({ role: "USER", createdAt: { $lt: since } }),
+    productsCol.countDocuments({ published: true }),
     // Paid orders in the window, summed in JS (works on MongoDB; no SQL GROUP BY).
-    db.order.findMany({
-      where: { status: "PAID", createdAt: { gte: since } },
-      select: { createdAt: true, total: true, items: { select: { priceCents: true, quantity: true, product: { select: { name: true, category: { select: { name: true } } } } } } },
-    }),
-    db.order.findMany({ orderBy: { createdAt: "desc" }, take: 6, include: { items: { take: 1, include: { product: { select: { name: true } } } } } }),
+    orders.find({ status: "PAID", createdAt: { $gte: since } }, { projection: { createdAt: 1, total: 1, items: 1 } }).toArray().then(withOrderProducts),
+    orders.find({}).sort({ createdAt: -1 }).limit(6).toArray().then(withOrderProducts),
   ]);
 
   const dayTotals = new Map<string, number>();

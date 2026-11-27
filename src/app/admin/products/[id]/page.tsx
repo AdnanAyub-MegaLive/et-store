@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
-import { db } from "@/lib/db";
+import { cols, fromDoc, type Product } from "@/lib/db";
 import { ProductForm } from "./product-form";
 
 export default async function EditProduct({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [categories, product] = await Promise.all([
-    db.category.findMany({ orderBy: [{ position: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
-    id === "new" ? null : db.product.findUnique({ where: { id } }),
+    cols().then(async (c) => (await c.categories.find({}, { projection: { name: 1 } }).sort({ position: 1, name: 1 }).toArray()).map((x) => ({ id: x._id, name: x.name }))),
+    id === "new" ? null : cols().then(async (c) => fromDoc<Product>(await c.products.findOne({ _id: id }))),
   ]);
   if (id !== "new" && !product) notFound();
   return (

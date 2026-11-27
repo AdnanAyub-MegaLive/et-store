@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Heart, ShoppingBag, User } from "lucide-react";
 import { SearchDialog } from "./search-dialog";
 import { getCurrentUser } from "@/lib/session";
-import { db } from "@/lib/db";
+import { cols } from "@/lib/db";
 import { CartCount } from "./cart";
 import { FavoritesCount } from "./favorites-context";
 import { NavLinks } from "./nav-links";
@@ -56,7 +56,7 @@ export async function Logo() {
 export async function SiteHeader() {
   const [user, categories, header] = await Promise.all([
     getCurrentUser(),
-    db.category.findMany({ where: { slug: { not: "unassigned" } }, orderBy: [{ position: "asc" }, { name: "asc" }], select: { slug: true, name: true, icon: true } }),
+    cols().then((c) => c.categories.find({ slug: { $ne: "unassigned" } }, { projection: { _id: 0, slug: 1, name: 1, icon: 1 } }).sort({ position: 1, name: 1 }).toArray()),
     getHeaderContent(),
   ]);
   const { icons } = header;

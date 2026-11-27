@@ -3,14 +3,13 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
+import { PRODUCT_DEFAULTS, cols, deleteContent, escapeRegex, isDuplicateKey, newId, setContent, type Doc, type Product } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import type { FormState } from "./auth";
 import { randomBytes } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { MAX_UPLOAD_BYTES, UPLOAD_DIR, detectType, unsafeSvgReason, UPLOAD_TYPES } from "@/lib/uploads";
-import type { Prisma } from "@prisma/client";
 import { homeContentSchema } from "@/lib/home-content-schema";
 import { ABOUT_KEY, CONTACT_KEY, HEADER_KEY, HOME_KEY } from "@/lib/home-content";
 import { aboutContentSchema } from "@/lib/about-content-schema";
@@ -81,15 +80,18 @@ export async function saveProduct(_: FormState, form: FormData): Promise<FormSta
   const parsed = parseProduct(form);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   if (typeof id === "string" && id && parsed.data.published) {
-    const current = await db.product.findUnique({ where: { id }, select: { megaRemovedAt: true } });
+    const current = await (await cols()).products.findOne({ _id: id }, { projection: { megaRemovedAt: 1 } });
     if (current?.megaRemovedAt) return { error: "This item was removed from the Mega Live Mall, so it can't be published." };
     if (parsed.data.price <= 0) return { error: "Set a price before publishing." };
   }
+  const { products } = await cols();
   try {
-    if (typeof id === "string" && id) await db.product.update({ where: { id }, data: toData(parsed.data) });
-    else await db.product.create({ data: { format: "", ...toData(parsed.data) } });
-  } catch {
-    return { error: "Could not save. Is the slug already used?" };
+    const now = new Date();
+    if (typeof id === "string" && id) await products.updateOne({ _id: id }, { $set: { ...toData(parsed.data), updatedAt: now } });
+    else await products.insertOne({ _id: newId(), ...PRODUCT_DEFAULTS, format: "", ...toData(parsed.data), createdAt: now, updatedAt: now });
+  } catch (e) {
+    if (isDuplicateKey(e)) return { error: "Could not save. Is the slug already used?" };
+    throw e;
   }
   revalidatePath("/", "layout");
   redirect("/admin/products");
@@ -98,10 +100,14 @@ export async function saveProduct(_: FormState, form: FormData): Promise<FormSta
 export async function deleteProduct(form: FormData) {
   await requireAdmin();
   const id = z.string().cuid().parse(form.get("id"));
-  const sold = await db.orderItem.count({ where: { productId: id } });
+  const { orders, products, favorites } = await cols();
+  const sold = await orders.countDocuments({ "items.productId": id }, { limit: 1 });
   // Products with orders are unpublished instead of deleted to keep order history intact.
-  if (sold) await db.product.update({ where: { id }, data: { published: false } });
-  else await db.product.delete({ where: { id } });
+  if (sold) await products.updateOne({ _id: id }, { $set: { published: false, updatedAt: new Date() } });
+  else {
+    await products.deleteOne({ _id: id });
+    await favorites.deleteMany({ productId: id });
+  }
   revalidatePath("/", "layout");
 }
 
@@ -109,7 +115,7 @@ export async function setOrderStatus(form: FormData) {
   await requireAdmin();
   const id = z.string().cuid().parse(form.get("id"));
   const status = z.enum(["PENDING", "PAID", "REFUNDED", "CANCELLED"]).parse(form.get("status"));
-  await db.order.update({ where: { id }, data: { status } });
+  await (await cols()).orders.updateOne({ _id: id }, { $set: { status } });
   revalidatePath("/admin", "layout");
 }
 
@@ -117,14 +123,14 @@ export async function setMessageRead(form: FormData) {
   await requireAdmin();
   const id = z.string().cuid().parse(form.get("id"));
   const read = form.get("read") === "true";
-  await db.contactMessage.update({ where: { id }, data: { read } });
+  await (await cols()).contactMessages.updateOne({ _id: id }, { $set: { read } });
   revalidatePath("/admin", "layout");
 }
 
 export async function deleteMessage(form: FormData) {
   await requireAdmin();
   const id = z.string().cuid().parse(form.get("id"));
-  await db.contactMessage.delete({ where: { id } });
+  await (await cols()).contactMessages.deleteOne({ _id: id });
   revalidatePath("/admin", "layout");
 }
 
@@ -133,7 +139,7 @@ export async function setUserRole(form: FormData) {
   const id = z.string().cuid().parse(form.get("id"));
   const role = z.enum(["USER", "ADMIN"]).parse(form.get("role"));
   if (id === me.id) return; // can't demote yourself
-  await db.user.update({ where: { id }, data: { role } });
+  await (await cols()).users.updateOne({ _id: id }, { $set: { role, updatedAt: new Date() } });
   revalidatePath("/admin/customers");
 }
 
@@ -172,8 +178,9 @@ export async function setProductPublished(form: FormData) {
   const id = z.string().cuid().parse(form.get("id"));
   const published = form.get("published") === "1";
   // A Mega item that left the Mega Mall cannot be sold until it comes back.
-  if (published && (await db.product.findUnique({ where: { id }, select: { megaRemovedAt: true } }))?.megaRemovedAt) return;
-  await db.product.update({ where: { id }, data: { published } });
+  const { products } = await cols();
+  if (published && (await products.findOne({ _id: id }, { projection: { megaRemovedAt: 1 } }))?.megaRemovedAt) return;
+  await products.updateOne({ _id: id }, { $set: { published, updatedAt: new Date() } });
   revalidatePath("/", "layout");
 }
 
@@ -181,17 +188,23 @@ export async function setProductPublished(form: FormData) {
 export async function duplicateProduct(form: FormData) {
   await requireAdmin();
   const id = z.string().cuid().parse(form.get("id"));
-  const p = await db.product.findUnique({ where: { id } });
+  const { products } = await cols();
+  const p = await products.findOne({ _id: id });
   if (!p) return;
 
   // Find a free slug: name-copy, name-copy-2, name-copy-3 ...
   const base = `${p.slug}-copy`.slice(0, 110);
-  const taken = new Set((await db.product.findMany({ where: { slug: { startsWith: base } }, select: { slug: true } })).map((x) => x.slug));
+  const taken = new Set((await products.find({ slug: { $regex: "^" + escapeRegex(base) } }, { projection: { slug: 1 } }).toArray()).map((x) => x.slug));
   let slug = base;
   for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
 
-  const copy = await db.product.create({
-    data: {
+  const copyId = newId();
+  const now = new Date();
+  const copy: Doc<Product> = {
+      ...PRODUCT_DEFAULTS,
+      _id: copyId,
+      createdAt: now,
+      updatedAt: now,
       slug,
       name: `${p.name} (copy)`.slice(0, 120),
       tagline: p.tagline,
@@ -209,10 +222,10 @@ export async function duplicateProduct(form: FormData) {
       categoryId: p.categoryId,
       published: false, // copies start hidden until you're ready
       featured: false,
-    },
-  });
+  };
+  await products.insertOne(copy);
   revalidatePath("/admin/products");
-  redirect(`/admin/products/${copy.id}`);
+  redirect(`/admin/products/${copyId}`);
 }
 
 export type ContentState = { ok?: boolean; error?: string } | undefined;
@@ -231,8 +244,7 @@ export async function saveHomeContent(_: ContentState, form: FormData): Promise<
     const issue = parsed.error.issues[0];
     return { error: `${issue.path.join(" › ")}: ${issue.message}` };
   }
-  const data = parsed.data as unknown as Prisma.InputJsonValue;
-  await db.siteContent.upsert({ where: { key: HOME_KEY }, create: { key: HOME_KEY, data }, update: { data } });
+  await setContent(HOME_KEY, parsed.data);
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -240,7 +252,7 @@ export async function saveHomeContent(_: ContentState, form: FormData): Promise<
 /** Put the home page back to the built-in content. */
 export async function resetHomeContent() {
   await requireAdmin();
-  await db.siteContent.deleteMany({ where: { key: HOME_KEY } });
+  await deleteContent(HOME_KEY);
   revalidatePath("/", "layout");
 }
 
@@ -258,8 +270,7 @@ export async function saveHeaderContent(_: ContentState, form: FormData): Promis
     const issue = parsed.error.issues[0];
     return { error: `${issue.path.join(" › ")}: ${issue.message}` };
   }
-  const data = parsed.data as unknown as Prisma.InputJsonValue;
-  await db.siteContent.upsert({ where: { key: HEADER_KEY }, create: { key: HEADER_KEY, data }, update: { data } });
+  await setContent(HEADER_KEY, parsed.data);
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -267,7 +278,7 @@ export async function saveHeaderContent(_: ContentState, form: FormData): Promis
 /** Put the header back to the built-in logo and menu. */
 export async function resetHeaderContent() {
   await requireAdmin();
-  await db.siteContent.deleteMany({ where: { key: HEADER_KEY } });
+  await deleteContent(HEADER_KEY);
   revalidatePath("/", "layout");
 }
 
@@ -295,15 +306,17 @@ export async function saveCategory(_: CategoryState, form: FormData): Promise<Ca
   const name = String(form.get("name") ?? "");
   const parsed = categorySchema.safeParse({ name, slug: String(form.get("slug") || "") || slugify(name), icon: form.get("icon") ?? "" });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { categories } = await cols();
   try {
     if (id) {
-      await db.category.update({ where: { id: z.string().cuid().parse(id) }, data: parsed.data });
+      await categories.updateOne({ _id: z.string().cuid().parse(id) }, { $set: parsed.data });
     } else {
-      const last = await db.category.aggregate({ _max: { position: true } });
-      await db.category.create({ data: { ...parsed.data, position: (last._max.position ?? 0) + 1 } });
+      const last = await categories.find({}, { projection: { position: 1 } }).sort({ position: -1 }).limit(1).next();
+      await categories.insertOne({ _id: newId(), ...parsed.data, position: (last?.position ?? 0) + 1 });
     }
-  } catch {
-    return { error: "A category with this name or slug already exists." };
+  } catch (e) {
+    if (isDuplicateKey(e)) return { error: "A category with this name or slug already exists." };
+    throw e;
   }
   revalidatePath("/", "layout");
   return { ok: true };
@@ -313,9 +326,10 @@ export async function saveCategory(_: CategoryState, form: FormData): Promise<Ca
 export async function deleteCategory(_: CategoryState, form: FormData): Promise<CategoryState> {
   await requireAdmin();
   const id = z.string().cuid().parse(form.get("id"));
-  const used = await db.product.count({ where: { categoryId: id } });
+  const { products, categories } = await cols();
+  const used = await products.countDocuments({ categoryId: id });
   if (used) return { error: `This category still has ${used} product${used === 1 ? "" : "s"}. Move or delete them first.` };
-  await db.category.delete({ where: { id } });
+  await categories.deleteOne({ _id: id });
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -325,12 +339,13 @@ export async function moveCategory(form: FormData) {
   await requireAdmin();
   const id = z.string().cuid().parse(form.get("id"));
   const dir = form.get("dir") === "up" ? -1 : 1;
-  const list = await db.category.findMany({ orderBy: [{ position: "asc" }, { name: "asc" }], select: { id: true } });
-  const i = list.findIndex((c) => c.id === id);
+  const { categories } = await cols();
+  const list = await categories.find({}, { projection: { _id: 1 } }).sort({ position: 1, name: 1 }).toArray();
+  const i = list.findIndex((c) => c._id === id);
   const j = i + dir;
   if (i < 0 || j < 0 || j >= list.length) return;
   [list[i], list[j]] = [list[j], list[i]];
-  await db.$transaction(list.map((c, k) => db.category.update({ where: { id: c.id }, data: { position: k + 1 } })));
+  await categories.bulkWrite(list.map((c, k) => ({ updateOne: { filter: { _id: c._id }, update: { $set: { position: k + 1 } } } })));
   revalidatePath("/", "layout");
 }
 
@@ -348,8 +363,7 @@ export async function saveAboutContent(_: ContentState, form: FormData): Promise
     const issue = parsed.error.issues[0];
     return { error: `${issue.path.join(" › ")}: ${issue.message}` };
   }
-  const data = parsed.data as unknown as Prisma.InputJsonValue;
-  await db.siteContent.upsert({ where: { key: ABOUT_KEY }, create: { key: ABOUT_KEY, data }, update: { data } });
+  await setContent(ABOUT_KEY, parsed.data);
   revalidatePath("/about");
   return { ok: true };
 }
@@ -357,7 +371,7 @@ export async function saveAboutContent(_: ContentState, form: FormData): Promise
 /** Put the About page back to the built-in content. */
 export async function resetAboutContent() {
   await requireAdmin();
-  await db.siteContent.deleteMany({ where: { key: ABOUT_KEY } });
+  await deleteContent(ABOUT_KEY);
   revalidatePath("/about");
 }
 
@@ -375,8 +389,7 @@ export async function saveContactContent(_: ContentState, form: FormData): Promi
     const issue = parsed.error.issues[0];
     return { error: `${issue.path.join(" › ")}: ${issue.message}` };
   }
-  const data = parsed.data as unknown as Prisma.InputJsonValue;
-  await db.siteContent.upsert({ where: { key: CONTACT_KEY }, create: { key: CONTACT_KEY, data }, update: { data } });
+  await setContent(CONTACT_KEY, parsed.data);
   revalidatePath("/contact");
   return { ok: true };
 }
@@ -384,7 +397,7 @@ export async function saveContactContent(_: ContentState, form: FormData): Promi
 /** Put the Contact page back to the built-in content. */
 export async function resetContactContent() {
   await requireAdmin();
-  await db.siteContent.deleteMany({ where: { key: CONTACT_KEY } });
+  await deleteContent(CONTACT_KEY);
   revalidatePath("/contact");
 }
 

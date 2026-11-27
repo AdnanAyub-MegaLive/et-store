@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import type { Product } from "@prisma/client";
+import type { Product } from "@/lib/db";
 import { saveProduct } from "@/lib/actions/admin";
 import { ImageField } from "./image-field";
 import { GalleryField } from "./gallery-field";

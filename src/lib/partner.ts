@@ -1,5 +1,5 @@
 import "server-only";
-import { db } from "@/lib/db";
+import { PRODUCT_DEFAULTS, cols, getContent, newId, setContent } from "@/lib/db";
 
 /**
  * Partner Store API (Mall items). Server-to-server only: the key never reaches the browser.
@@ -106,24 +106,30 @@ function slugify(s: string) {
 }
 
 async function unassignedCategoryId() {
-  const c = await db.category.upsert({
-    where: { slug: UNASSIGNED_SLUG },
-    create: { name: "Unassigned", slug: UNASSIGNED_SLUG, icon: "frame", position: 9999 },
-    update: {},
-  });
-  return c.id;
+  const { categories } = await cols();
+  const c = await categories.findOneAndUpdate(
+    { slug: UNASSIGNED_SLUG },
+    { $setOnInsert: { _id: newId(), name: "Unassigned", slug: UNASSIGNED_SLUG, icon: "frame", position: 9999 } },
+    { upsert: true, returnDocument: "after" },
+  );
+  return c!._id;
 }
 
 async function upsertItem(it: PartnerItem, categoryId: string) {
   const image = `/partner-media/${encodeURIComponent(it.id)}/image`;
-  const existing = await db.product.findUnique({ where: { partnerId: it.id }, select: { id: true } });
+  const { products } = await cols();
+  const now = new Date();
+  const existing = await products.findOne({ partnerId: it.id }, { projection: { _id: 1 } });
   if (existing) {
     // Only Mall-owned fields; price, category, text and publish state stay as set in admin.
-    await db.product.update({ where: { id: existing.id }, data: { name: it.name, image, partnerMotion: !!it.media.motion } });
+    await products.updateOne({ _id: existing._id }, { $set: { name: it.name, image, partnerMotion: !!it.media.motion, updatedAt: now } });
     return "updated" as const;
   }
-  await db.product.create({
-    data: {
+  await products.insertOne({
+      ...PRODUCT_DEFAULTS,
+      _id: newId(),
+      createdAt: now,
+      updatedAt: now,
       partnerId: it.id,
       partnerMotion: !!it.media.motion,
       slug: `${slugify(it.name)}-${slugify(it.id)}`,
@@ -139,7 +145,6 @@ async function upsertItem(it: PartnerItem, categoryId: string) {
       features: [],
       published: false, // hidden until a price and category are set
       categoryId,
-    },
   });
   return "created" as const;
 }
@@ -149,16 +154,16 @@ export type SyncResult = { created: number; updated: number; removed: number; fu
 /** Pull new/changed Mall items into Products and hide items that left the Mall. */
 export async function syncPartnerItems(): Promise<SyncResult> {
   const started = new Date();
-  const last = await db.siteContent.findUnique({ where: { key: SYNC_KEY } });
-  let since = (last?.data as { since?: string } | null)?.since;
+  const { products } = await cols();
+  let since = ((await getContent(SYNC_KEY)) as { since?: string } | undefined)?.since;
   const categoryId = await unassignedCategoryId();
   const out: SyncResult = { created: 0, updated: 0, removed: 0, full: !since };
   const seen = new Set<string>();
 
   const hide = async (ids: string[]) => {
     if (!ids.length) return;
-    const r = await db.product.updateMany({ where: { partnerId: { in: ids }, published: true }, data: { published: false } });
-    out.removed += r.count;
+    const r = await products.updateMany({ partnerId: { $in: ids }, published: true }, { $set: { published: false, updatedAt: new Date() } });
+    out.removed += r.modifiedCount;
   };
 
   // Items
@@ -192,18 +197,17 @@ export async function syncPartnerItems(): Promise<SyncResult> {
     }
   } else {
     // Full sync: anything synced before but no longer in the Mall gets hidden.
-    const stale = await db.product.findMany({ where: { partnerId: { not: null, notIn: [...seen] }, published: true }, select: { partnerId: true } });
+    const stale = await products.find({ partnerId: { $type: "string", $nin: [...seen] }, published: true }, { projection: { partnerId: 1 } }).toArray();
     await hide(stale.map((s) => s.partnerId!));
   }
 
   const data = { since: started.toISOString(), at: new Date().toISOString(), ...out };
-  await db.siteContent.upsert({ where: { key: SYNC_KEY }, create: { key: SYNC_KEY, data }, update: { data } });
+  await setContent(SYNC_KEY, data);
   return out;
 }
 
 export async function lastPartnerSync() {
-  const row = await db.siteContent.findUnique({ where: { key: SYNC_KEY } });
-  return row?.data as (SyncResult & { at: string }) | undefined;
+  return (await getContent(SYNC_KEY)) as (SyncResult & { at: string }) | undefined;
 }
 
 export { PartnerError };

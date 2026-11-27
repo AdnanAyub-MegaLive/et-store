@@ -3,7 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { cache } from "react";
 import { redirect } from "next/navigation";
-import { db } from "./db";
+import { cols } from "./db";
 
 const COOKIE = "lm_session";
 
@@ -51,10 +51,8 @@ export async function verifyToken(token?: string): Promise<SessionPayload | null
 export const getCurrentUser = cache(async () => {
   const session = await verifyToken((await cookies()).get(COOKIE)?.value);
   if (!session) return null;
-  return db.user.findUnique({
-    where: { id: session.sub },
-    select: { id: true, email: true, name: true, role: true, createdAt: true },
-  });
+  const u = await (await cols()).users.findOne({ _id: session.sub }, { projection: { email: 1, name: 1, role: 1, createdAt: 1 } });
+  return u ? { id: u._id, email: u.email, name: u.name, role: u.role, createdAt: u.createdAt } : null;
 });
 
 export async function requireUser() {
