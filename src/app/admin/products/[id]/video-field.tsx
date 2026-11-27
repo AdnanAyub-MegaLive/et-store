@@ -4,6 +4,8 @@ import { useRef, useState, useTransition } from "react";
 import { Upload, X } from "lucide-react";
 import { uploadProductVideo } from "@/lib/actions/admin";
 
+const isGif = (u: string) => /\.gif($|\?)/i.test(u);
+
 /** Optional product video: upload an MP4/WebM (up to 4 MB) or paste an https link to a video file. */
 export function VideoField({ initial }: { initial: string }) {
   const [url, setUrl] = useState(initial);
@@ -16,7 +18,7 @@ export function VideoField({ initial }: { initial: string }) {
     if (!file) return;
     setError("");
     if (file.size > 4 * 1024 * 1024) {
-      setError("Video must be 4 MB or smaller. For a bigger video, paste its https link instead.");
+      setError("Video or GIF must be 4 MB or smaller. For a bigger video, paste its https link instead.");
       if (fileRef.current) fileRef.current.value = "";
       return;
     }
@@ -32,12 +34,15 @@ export function VideoField({ initial }: { initial: string }) {
 
   return (
     <div className="flex flex-col gap-2 sm:col-span-2">
-      <span className="label">Product video (optional)</span>
+      <span className="label">Product video or GIF (optional)</span>
       <p className="-mt-1 text-xs text-muted">The featured image shows on product cards; this video plays when the product page is opened.</p>
       <div className="flex flex-wrap items-start gap-4">
         <div className="grid aspect-square w-32 shrink-0 place-items-center overflow-hidden rounded-xl border border-line bg-surface">
-          {url ? (
-            <video key={url} src={url} muted loop autoPlay playsInline className="size-full object-cover" />
+          {url && isGif(url) ? (
+            // eslint-disable-next-line @next/next/no-img-element -- live preview of the uploaded GIF
+            <img src={url} alt="GIF preview" className="size-full object-contain" />
+          ) : url ? (
+            <video key={url} src={url} muted loop autoPlay playsInline className="size-full object-contain" />
           ) : (
             <span className="text-xs text-muted">No video</span>
           )}
@@ -46,8 +51,8 @@ export function VideoField({ initial }: { initial: string }) {
           <div className="flex flex-wrap gap-2">
             <label className={`btn-outline w-fit cursor-pointer py-2 ${pending ? "pointer-events-none opacity-60" : ""}`}>
               <Upload className="size-4" />
-              {pending ? "Uploading…" : "Upload video"}
-              <input ref={fileRef} type="file" accept=".mp4,.webm,video/mp4,video/webm" onChange={onPick} className="sr-only" />
+              {pending ? "Uploading…" : "Upload video / GIF"}
+              <input ref={fileRef} type="file" accept=".mp4,.webm,.gif,video/mp4,video/webm,image/gif" onChange={onPick} className="sr-only" />
             </label>
             {url && (
               <button type="button" onClick={() => setUrl("")} className="btn-outline w-fit py-2">
@@ -56,7 +61,7 @@ export function VideoField({ initial }: { initial: string }) {
             )}
           </div>
           <input name="video" value={url} onChange={(e) => setUrl(e.target.value)} maxLength={500} placeholder="/uploads/... or https://...mp4" aria-label="Video path or URL" className="input" />
-          <p className="text-xs text-muted">MP4 or WebM, up to 4 MB. For a bigger video, paste an https link to the video file.</p>
+          <p className="text-xs text-muted">MP4, WebM or GIF, up to 4 MB. For a bigger file, paste an https link to it.</p>
           {error && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{error}</p>}
         </div>
       </div>

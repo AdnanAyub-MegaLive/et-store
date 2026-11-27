@@ -21,6 +21,10 @@ export function ProductVideo({ src, name, images }: { src: string; name: string;
   }
   return (
     <div className="flex flex-col gap-3">
+      {/\.gif($|\?)/i.test(src) ? (
+        // eslint-disable-next-line @next/next/no-img-element -- animated GIF must not be re-encoded by next/image
+        <img src={src} alt={`${name} animation`} onError={() => setFailed(true)} className="aspect-square w-full rounded-[18px] bg-surface object-contain" />
+      ) : (
       <video
         src={src}
         poster={images[0]}
@@ -36,6 +40,7 @@ export function ProductVideo({ src, name, images }: { src: string; name: string;
         onError={() => setFailed(true)}
         className="aspect-square w-full rounded-[18px] bg-surface object-contain"
       />
+      )}
       <button type="button" onClick={() => setShowImages(true)} className="btn-outline w-fit py-2 text-sm">
         View images
       </button>

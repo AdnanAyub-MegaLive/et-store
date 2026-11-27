@@ -26,7 +26,7 @@ const productSchema = z.object({
   compare: z.union([z.literal(""), z.coerce.number().min(0).max(100000)]).optional(),
   image: imageUrl,
   video: z
-    .union([z.literal(""), z.string().trim().regex(/^(\/uploads\/[a-f0-9]{32}\.(mp4|webm)|https:\/\/[\w\-./%?=&]+)$/, "Video must be an uploaded file or an https link").max(500)])
+    .union([z.literal(""), z.string().trim().regex(/^(\/uploads\/[a-f0-9]{32}\.(mp4|webm|gif)|https:\/\/[\w\-./%?=&]+)$/, "Video must be an uploaded file or an https link").max(500)])
     .optional(),
   gallery: z
     .string()
@@ -181,10 +181,10 @@ export async function uploadProductVideo(_: UploadState, form: FormData): Promis
   await requireAdmin();
   const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) return { error: "Choose a video first." };
-  if (file.size > MAX_VIDEO_BYTES) return { error: "Video must be 4 MB or smaller. For a bigger video, paste its https link instead." };
+  if (file.size > MAX_VIDEO_BYTES) return { error: "Video or GIF must be 4 MB or smaller. For a bigger video, paste its https link instead." };
   const buf = Buffer.from(await file.arrayBuffer());
   const ext = detectVideoType(buf);
-  if (!ext) return { error: "Only MP4 or WebM videos are allowed." };
+  if (!ext) return { error: "Only MP4, WebM or GIF files are allowed." };
   return storeUpload(buf, ext);
 }
 

@@ -15,14 +15,16 @@ export const UPLOAD_TYPES = {
   webp: "image/webp",
   mp4: "video/mp4",
   webm: "video/webm",
+  gif: "image/gif",
 } as const;
 export type UploadExt = keyof typeof UPLOAD_TYPES;
 
 /** Stored file names are always random hex + a known extension. */
-export const UPLOAD_NAME = /^[a-f0-9]{32}\.(svg|png|jpg|webp|mp4|webm)$/;
+export const UPLOAD_NAME = /^[a-f0-9]{32}\.(svg|png|jpg|webp|mp4|webm|gif)$/;
 
 /** Video type from the file contents (MP4/MOV "ftyp" box, or WebM's EBML header). */
-export function detectVideoType(buf: Buffer): "mp4" | "webm" | null {
+export function detectVideoType(buf: Buffer): "mp4" | "webm" | "gif" | null {
+  if (buf.subarray(0, 4).toString("ascii") === "GIF8") return "gif";
   if (buf.subarray(4, 8).toString("ascii") === "ftyp") return "mp4";
   if (buf.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]))) return "webm";
   return null;
