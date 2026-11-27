@@ -9,6 +9,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
+  "media-src 'self' blob: https:",
   "connect-src 'self'" + (isDev ? " ws:" : ""),
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -26,7 +27,7 @@ const nextConfig: NextConfig = {
     // Admin uploads stored in Vercel Blob.
     remotePatterns: [{ protocol: "https", hostname: "*.public.blob.vercel-storage.com" }],
   },
-  experimental: { serverActions: { bodySizeLimit: "3mb" } },
+  experimental: { serverActions: { bodySizeLimit: "5mb" } },
   async headers() {
     return [
       {

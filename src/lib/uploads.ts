@@ -5,16 +5,28 @@ import path from "node:path";
 export const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 
+/** Vercel functions accept request bodies up to ~4.5 MB, so uploaded videos stay under that. */
+export const MAX_VIDEO_BYTES = 4 * 1024 * 1024;
+
 export const UPLOAD_TYPES = {
   svg: "image/svg+xml",
   png: "image/png",
   jpg: "image/jpeg",
   webp: "image/webp",
+  mp4: "video/mp4",
+  webm: "video/webm",
 } as const;
 export type UploadExt = keyof typeof UPLOAD_TYPES;
 
 /** Stored file names are always random hex + a known extension. */
-export const UPLOAD_NAME = /^[a-f0-9]{32}\.(svg|png|jpg|webp)$/;
+export const UPLOAD_NAME = /^[a-f0-9]{32}\.(svg|png|jpg|webp|mp4|webm)$/;
+
+/** Video type from the file contents (MP4/MOV "ftyp" box, or WebM's EBML header). */
+export function detectVideoType(buf: Buffer): "mp4" | "webm" | null {
+  if (buf.subarray(4, 8).toString("ascii") === "ftyp") return "mp4";
+  if (buf.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]))) return "webm";
+  return null;
+}
 
 /** Work out the real type from the file contents, never from the name the browser sent. */
 export function detectType(buf: Buffer): UploadExt | null {

@@ -8,7 +8,7 @@ import { requireAdmin } from "@/lib/session";
 import type { FormState } from "./auth";
 import { randomBytes } from "node:crypto";
 import { Binary } from "mongodb";
-import { MAX_UPLOAD_BYTES, blobToken, detectType, unsafeSvgReason, UPLOAD_TYPES } from "@/lib/uploads";
+import { MAX_UPLOAD_BYTES, MAX_VIDEO_BYTES, blobToken, detectType, detectVideoType, unsafeSvgReason, UPLOAD_TYPES, type UploadExt } from "@/lib/uploads";
 import { homeContentSchema } from "@/lib/home-content-schema";
 import { ABOUT_KEY, CONTACT_KEY, HEADER_KEY, HOME_KEY } from "@/lib/home-content";
 import { aboutContentSchema } from "@/lib/about-content-schema";
@@ -25,6 +25,9 @@ const productSchema = z.object({
   price: z.coerce.number().min(0).max(100000),
   compare: z.union([z.literal(""), z.coerce.number().min(0).max(100000)]).optional(),
   image: imageUrl,
+  video: z
+    .union([z.literal(""), z.string().trim().regex(/^(\/uploads\/[a-f0-9]{32}\.(mp4|webm)|https:\/\/[\w\-./%?=&]+)$/, "Video must be an uploaded file or an https link").max(500)])
+    .optional(),
   gallery: z
     .string()
     .optional()
@@ -63,6 +66,7 @@ function toData(d: z.infer<typeof productSchema>) {
     priceCents: Math.round(d.price * 100),
     compareCents: d.compare === "" || d.compare === undefined ? null : Math.round(d.compare * 100),
     image: d.image,
+    video: d.video || null,
     gallery: d.gallery,
     badge: d.badge || null,
     ...(d.format !== undefined && { format: d.format }),
@@ -159,6 +163,23 @@ export async function uploadProductImage(_: UploadState, form: FormData): Promis
     if (reason) return { error: `This SVG was blocked for safety: ${reason}.` };
   }
 
+  return storeUpload(buf, ext);
+}
+
+/** Admin-only product video upload (MP4 or WebM up to 4 MB). Bigger videos can be linked by https URL. */
+export async function uploadProductVideo(_: UploadState, form: FormData): Promise<UploadState> {
+  await requireAdmin();
+  const file = form.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose a video first." };
+  if (file.size > MAX_VIDEO_BYTES) return { error: "Video must be 4 MB or smaller. For a bigger video, paste its https link instead." };
+  const buf = Buffer.from(await file.arrayBuffer());
+  const ext = detectVideoType(buf);
+  if (!ext) return { error: "Only MP4 or WebM videos are allowed." };
+  return storeUpload(buf, ext);
+}
+
+/** Save an upload to Vercel Blob (if connected) or MongoDB, and return its URL. */
+async function storeUpload(buf: Buffer, ext: UploadExt): Promise<UploadState> {
   const name = `${randomBytes(16).toString("hex")}.${ext}`;
   // On Vercel the disk is read-only, so uploads go to Vercel Blob when its token is set.
   try {
@@ -180,7 +201,7 @@ export async function uploadProductImage(_: UploadState, form: FormData): Promis
     await uploads.insertOne({ _id: name, data: new Binary(buf), contentType: UPLOAD_TYPES[ext], size: buf.length, createdAt: new Date() });
     return { url: `/uploads/${name}` };
   } catch (e) {
-    console.error("Image upload failed:", e);
+    console.error("Upload failed:", e);
     return { error: `Upload failed: ${String((e as Error)?.message ?? e).slice(0, 160)}` };
   }
 }

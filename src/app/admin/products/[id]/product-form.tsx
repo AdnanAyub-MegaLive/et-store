@@ -5,6 +5,7 @@ import type { Product } from "@/lib/db";
 import { saveProduct } from "@/lib/actions/admin";
 import { ImageField } from "./image-field";
 import { GalleryField } from "./gallery-field";
+import { VideoField } from "./video-field";
 
 function F({ label, name, def, ...rest }: { label: string; name: string; def?: string | number | null } & React.InputHTMLAttributes<HTMLInputElement>) {
   return <label className="block"><span className="label">{label}</span><input name={name} defaultValue={def ?? ""} className="input" {...rest} /></label>;
@@ -30,6 +31,7 @@ export function ProductForm({ categories, product }: { categories: { id: string;
         </select>
       </label>
       <ImageField initial={p?.image ?? ""} />
+      <VideoField initial={p?.video ?? ""} />
       <GalleryField initial={p?.gallery ?? []} />
       <F label="Badge (optional)" name="badge" def={p?.badge} maxLength={30} />
       <label className="block sm:col-span-2"><span className="label">Features (one per line)</span><textarea name="features" defaultValue={p?.features.join("\n")} rows={4} maxLength={2000} className="input" /></label>

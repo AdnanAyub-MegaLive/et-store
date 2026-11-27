@@ -19,21 +19,32 @@ async function readUpload(name: string): Promise<Uint8Array> {
   }
 }
 
-export async function GET(_: Request, { params }: { params: Promise<{ name: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ name: string }> }) {
   const { name } = await params;
   if (!UPLOAD_NAME.test(name)) return new Response("Not found", { status: 404 });
   try {
     const body = await readUpload(name);
     const ext = name.split(".").pop() as UploadExt;
-    return new Response(new Uint8Array(body), {
-      headers: {
-        "Content-Type": UPLOAD_TYPES[ext],
-        "Cache-Control": "public, max-age=31536000, immutable",
-        "X-Content-Type-Options": "nosniff",
-        // Even if an SVG is opened directly, nothing inside it can run.
-        "Content-Security-Policy": "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox",
-      },
-    });
+    const headers: Record<string, string> = {
+      "Content-Type": UPLOAD_TYPES[ext],
+      "Cache-Control": "public, max-age=31536000, immutable",
+      "X-Content-Type-Options": "nosniff",
+      "Accept-Ranges": "bytes",
+      // Even if an SVG is opened directly, nothing inside it can run.
+      "Content-Security-Policy": "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; sandbox",
+    };
+    // Videos need byte ranges (Safari won't play without them; seeking uses them everywhere).
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.get("range") ?? "");
+    if (m && (m[1] || m[2])) {
+      const size = body.length;
+      let start = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2]));
+      let end = m[1] && m[2] ? Number(m[2]) : size - 1;
+      end = Math.min(end, size - 1);
+      start = Math.min(start, end);
+      if (start >= size) return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${size}` } });
+      return new Response(body.slice(start, end + 1), { status: 206, headers: { ...headers, "Content-Range": `bytes ${start}-${end}/${size}`, "Content-Length": String(end - start + 1) } });
+    }
+    return new Response(new Uint8Array(body), { headers: { ...headers, "Content-Length": String(body.length) } });
   } catch {
     return new Response("Not found", { status: 404 });
   }

@@ -22,6 +22,8 @@ export type Product = {
   priceCents: number;
   compareCents: number | null;
   image: string;
+  /** Optional product video (uploaded /uploads/… file or https link), shown on the product page. */
+  video: string | null;
   gallery: string[];
   badge: string | null;
   format: string;
@@ -81,6 +83,7 @@ export type Doc<T extends { id: string }> = Omit<T, "id"> & { _id: string };
 
 export const PRODUCT_DEFAULTS = {
   compareCents: null,
+  video: null,
   gallery: [] as string[],
   badge: null,
   creator: "ET-Store",
