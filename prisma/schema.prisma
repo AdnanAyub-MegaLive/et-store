@@ -78,6 +78,14 @@ model Product {
   partnerMotion Boolean     @default(false)
   categoryId    String
   category      Category    @relation(fields: [categoryId], references: [id])
+  /// Mega Live Mall item this product was imported from (portal Partner Store API id, e.g. AST-1A2B3C).
+  megaItemId    String?     @unique
+  /// Name and category as last seen in Mega; the name follows Mega until an admin renames the product.
+  megaName      String?
+  megaCategory  String?
+  megaUpdatedAt DateTime?
+  /// Set when the item disappears from the Mega Mall; the product is unpublished at the same time.
+  megaRemovedAt DateTime?
   orderItems    OrderItem[]
   favorites     Favorite[]
   createdAt     DateTime    @default(now())

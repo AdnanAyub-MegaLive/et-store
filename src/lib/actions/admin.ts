@@ -80,6 +80,11 @@ export async function saveProduct(_: FormState, form: FormData): Promise<FormSta
   const id = form.get("id");
   const parsed = parseProduct(form);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (typeof id === "string" && id && parsed.data.published) {
+    const current = await db.product.findUnique({ where: { id }, select: { megaRemovedAt: true } });
+    if (current?.megaRemovedAt) return { error: "This item was removed from the Mega Live Mall, so it can't be published." };
+    if (parsed.data.price <= 0) return { error: "Set a price before publishing." };
+  }
   try {
     if (typeof id === "string" && id) await db.product.update({ where: { id }, data: toData(parsed.data) });
     else await db.product.create({ data: { format: "", ...toData(parsed.data) } });
@@ -166,6 +171,8 @@ export async function setProductPublished(form: FormData) {
   await requireAdmin();
   const id = z.string().cuid().parse(form.get("id"));
   const published = form.get("published") === "1";
+  // A Mega item that left the Mega Mall cannot be sold until it comes back.
+  if (published && (await db.product.findUnique({ where: { id }, select: { megaRemovedAt: true } }))?.megaRemovedAt) return;
   await db.product.update({ where: { id }, data: { published } });
   revalidatePath("/", "layout");
 }
