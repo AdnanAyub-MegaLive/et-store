@@ -27,7 +27,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ name: st
     const ext = name.split(".").pop() as UploadExt;
     const headers: Record<string, string> = {
       "Content-Type": UPLOAD_TYPES[ext],
-      "Cache-Control": "public, max-age=31536000, immutable",
+      "Cache-Control": "public, max-age=31536000, immutable, s-maxage=31536000",
+      // Files never change (random names), so Vercel's CDN can keep them; it then answers range requests itself.
+      "CDN-Cache-Control": "public, max-age=31536000, immutable",
       "X-Content-Type-Options": "nosniff",
       "Accept-Ranges": "bytes",
       // Even if an SVG is opened directly, nothing inside it can run.
@@ -35,7 +37,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ name: st
     };
     // Videos need byte ranges (Safari won't play without them; seeking uses them everywhere).
     const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.get("range") ?? "");
-    if (m && (m[1] || m[2])) {
+    // "bytes=0-" asks for the whole file: answer 200 so the CDN can cache it.
+    if (m && (m[1] || m[2]) && !(m[1] === "0" && !m[2])) {
       const size = body.length;
       let start = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2]));
       let end = m[1] && m[2] ? Number(m[2]) : size - 1;

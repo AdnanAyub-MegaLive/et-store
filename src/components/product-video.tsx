@@ -31,7 +31,7 @@ export function ProductVideo({ src, name, images }: { src: string; name: string;
         controls
         controlsList="nodownload noplaybackrate"
         disablePictureInPicture
-        preload="metadata"
+        preload="auto"
         aria-label={`${name} video`}
         onError={() => setFailed(true)}
         className="aspect-square w-full rounded-[18px] bg-surface object-contain"
