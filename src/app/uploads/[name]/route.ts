@@ -1,9 +1,12 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { UPLOAD_DIR, UPLOAD_NAME, UPLOAD_TYPES, blobToken, type UploadExt } from "@/lib/uploads";
+import { cols } from "@/lib/db";
 
-/** Local disk first; on Vercel, the private Blob store. */
+/** MongoDB first, then older files on local disk, then a private Blob store. */
 async function readUpload(name: string): Promise<Uint8Array> {
+  const doc = await (await cols()).uploads.findOne({ _id: name });
+  if (doc) return new Uint8Array(doc.data.buffer);
   try {
     return await readFile(path.join(/*turbopackIgnore: true*/ UPLOAD_DIR, name));
   } catch (e) {

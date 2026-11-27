@@ -7,9 +7,8 @@ import { PRODUCT_DEFAULTS, cols, deleteContent, escapeRegex, isDuplicateKey, new
 import { requireAdmin } from "@/lib/session";
 import type { FormState } from "./auth";
 import { randomBytes } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { MAX_UPLOAD_BYTES, UPLOAD_DIR, blobToken, detectType, unsafeSvgReason, UPLOAD_TYPES } from "@/lib/uploads";
+import { Binary } from "mongodb";
+import { MAX_UPLOAD_BYTES, blobToken, detectType, unsafeSvgReason, UPLOAD_TYPES } from "@/lib/uploads";
 import { homeContentSchema } from "@/lib/home-content-schema";
 import { ABOUT_KEY, CONTACT_KEY, HEADER_KEY, HOME_KEY } from "@/lib/home-content";
 import { aboutContentSchema } from "@/lib/about-content-schema";
@@ -176,13 +175,13 @@ export async function uploadProductImage(_: UploadState, form: FormData): Promis
         return { url: `/uploads/${name}` };
       }
     }
-    await mkdir(UPLOAD_DIR, { recursive: true });
-    await writeFile(path.join(/*turbopackIgnore: true*/ UPLOAD_DIR, name), buf);
+    // No Blob store: keep the image in MongoDB (works on Vercel's read-only disk); /uploads/[name] serves it.
+    const { uploads } = await cols();
+    await uploads.insertOne({ _id: name, data: new Binary(buf), contentType: UPLOAD_TYPES[ext], size: buf.length, createdAt: new Date() });
     return { url: `/uploads/${name}` };
   } catch (e) {
     console.error("Image upload failed:", e);
-    const msg = String((e as Error)?.message ?? e).slice(0, 160);
-    return { error: blobToken() ? `Upload failed: ${msg}` : "Upload failed: connect Vercel Blob (BLOB_READ_WRITE_TOKEN) for uploads on the live site." };
+    return { error: `Upload failed: ${String((e as Error)?.message ?? e).slice(0, 160)}` };
   }
 }
 

@@ -1,5 +1,5 @@
 import "server-only";
-import { MongoClient, type Collection, type Db } from "mongodb";
+import { MongoClient, type Binary, type Collection, type Db } from "mongodb";
 import { randomBytes } from "node:crypto";
 
 /**
@@ -153,6 +153,8 @@ export type Collections = {
   newsletter: Collection<Doc<NewsletterSubscriber>>;
   siteContent: Collection<Doc<SiteContent>>;
   counters: Collection<Doc<Counter>>;
+  /** Uploaded images (used when no Vercel Blob store is connected). _id is the file name. */
+  uploads: Collection<{ _id: string; data: Binary; contentType: string; size: number; createdAt: Date }>;
 };
 
 function collectionsOf(d: Db): Collections {
@@ -167,6 +169,7 @@ function collectionsOf(d: Db): Collections {
     newsletter: d.collection("newsletterSubscribers"),
     siteContent: d.collection("siteContent"),
     counters: d.collection("counters"),
+    uploads: d.collection("uploads"),
   };
 }
 
